@@ -29,10 +29,10 @@
     if (it.src) { const im = new Image(); im.src = it.src; im.alt = it.title || ""; im.loading = "lazy"; a.appendChild(im); }
     const cap = document.createElement("span");
     cap.className = "work-cap";
-    if (it.title) cap.textContent = it.title; else cap.innerHTML = "<i></i><i></i>";
+    if (it.title) cap.textContent = it.title; else if (!it.src) cap.innerHTML = "<i></i><i></i>";
     a.appendChild(cap);
     space.appendChild(a);
-    const ratio = it.ratio || RATIOS[Math.floor(rnd() * RATIOS.length)];
+    const ratio = it.ratio || (it.src ? 16 / 9 : RATIOS[Math.floor(rnd() * RATIOS.length)]);
     return { el: a, ratio, size: 0.55 + rnd() * 0.45, fx: rnd(), fy: rnd(), jit: rnd(), d: Math.abs(i - MID) };
   });
   // nearest the middle shows first and sits on top

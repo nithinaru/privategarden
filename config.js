@@ -40,9 +40,28 @@ window.SITE = {
   // the work section below the fountain.
   work: {
     // the two phrases either side of the stack
-    words: ["Things made", "with care"],
-    // one entry per card. empty = 28 skeleton placeholders.
-    // e.g. { src: "assets/work/poster.jpg", title: "Poster · 2026", href: "https://…", ratio: 16 / 9 }
-    items: [],
+    words: ["What I", "keep returning to"],
+    // one entry per card. an empty list shows 28 skeleton placeholders.
+    // each can have: src (image), title (caption under it; "" for none), href (link), ratio (default 16 / 9).
+    // an entry with no src stays a skeleton, so you can reserve a slot: {}
+    items: [
+      { src: "assets/flicker/01.jpg", title: "" },
+      { src: "assets/flicker/02.jpg", title: "" },
+      { src: "assets/flicker/03.jpg", title: "" },
+      { src: "assets/flicker/04.jpg", title: "Wright Flyer, first flight, 1903" },
+      { src: "assets/flicker/05.jpg", title: "Starship, liftoff" },
+      { src: "assets/flicker/06.jpg", title: "" },
+      { src: "assets/flicker/07.jpg", title: "" },
+      { src: "assets/flicker/08.jpg", title: "" },
+      { src: "assets/flicker/09.jpg", title: "" },
+      { src: "assets/flicker/10.jpg", title: "Starship, 33 engines" },
+      { src: "assets/flicker/11.jpg", title: "Painting the Golden Gate Bridge" },
+      { src: "assets/flicker/12.jpg", title: "" },
+      { src: "assets/flicker/13.jpg", title: "Half Dome, Yosemite" },
+      { src: "assets/flicker/14.jpg", title: "Daniel in the Lions\u2019 Den, Briton Rivi\u00e8re, 1872" },
+      { src: "assets/flicker/15.jpg", title: "Monet\u2019s garden, Giverny" },
+      { src: "assets/flicker/16.jpg", title: "Ye, live" },
+      { src: "assets/flicker/17.jpg", title: "" },
+    ],
   },
 };

@@ -43,6 +43,24 @@
   }
   addEventListener("resize", placeSides);
 
+  // footer: split the two words into letters so they can rise one by one, size the
+  // line to span the page, and start the rise when it scrolls into view
+  const endLine = $("end-line"), endBig = $("end-big");
+  let li = 0;
+  endLine.querySelectorAll(".w").forEach((w) => {
+    w.innerHTML = [...w.textContent].map((c) => `<i style="--i:${li++}">${c}</i>`).join("");
+  });
+  endLine.querySelector(".end-icon").style.setProperty("--i", 6);
+  async function fitEnd() {
+    await document.fonts.ready;
+    endBig.style.fontSize = "";
+    const fs = parseFloat(getComputedStyle(endBig).fontSize);
+    endBig.style.fontSize = (fs * innerWidth * 0.94) / endLine.getBoundingClientRect().width + "px";
+  }
+  fitEnd();
+  addEventListener("resize", fitEnd);
+  new IntersectionObserver(([e]) => { if (e.isIntersecting) endBig.classList.add("in"); }, { threshold: 0.35 }).observe(endBig);
+
   // the name is written, not shown: for each letter a pen line traces the
   // outline, then ink follows it across from left to right and the pen line
   // lifts. letters start 0.13s apart, so the hand moves along the name.
@@ -113,7 +131,7 @@
   $("bio").innerHTML = (S.bio || []).map((l) => `<span>${l
     .replace(/\[(.+?)\]\((.+?)\)/g, '<a class="hl-me" href="$2" target="_blank" rel="noopener">$1</a>')
     .replace(/\*\*(.+?)\*\*/g, '<b class="hl-me">$1</b>')}</span>`).join("");
-  $("about").href = $("by").href = S.about;   // both go to the main site
+  $("about").href = $("by").href = $("by2").href = S.about;   // all go to the main site
 
   // the colour sweep (About and the bold names): the label is doubled, and the copy
   // on top carries a band of colour that crosses it from left to right on hover

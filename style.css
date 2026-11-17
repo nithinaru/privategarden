@@ -323,6 +323,34 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
 .work.still .work-card { position: relative; translate: none; opacity: 1; width: auto; aspect-ratio: 16 / 9; }
 .work.still .work-cap { opacity: 1; }
 
+/* ---------- footer ---------- */
+.end {
+  position: relative; min-height: 58svh; display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 0 3vw; overflow: hidden;
+}
+.end-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; letter-spacing: .02em; margin-bottom: 1.4rem; }
+.end-row > span:last-child { color: #8a8a8a; }
+.end-row a { font-weight: 600; color: inherit; text-decoration: none; }
+/* the two words are almost the colour of the page. a hard light edge up and to the left
+   and a hard dark edge down and to the right make them read as pressed out of the paper. */
+.end-big {
+  --lift: -.0032em -.0048em 0 #fff; --drop: .0032em .0048em 0 rgba(112, 112, 108, .62);
+  margin: 0 -3vw; padding-bottom: .2em; text-align: center; white-space: nowrap;
+  font-family: var(--serif); font-weight: 480; font-size: 15vw; line-height: 1.02; letter-spacing: -.02em;
+  color: #e7e7e5; text-shadow: var(--lift), var(--drop);
+}
+.end-line { display: inline-flex; align-items: baseline; gap: .1em; }
+.end-big i { display: inline-block; font-style: normal; }
+.end-icon {
+  width: .78em; height: .78em; flex: none; overflow: visible; fill: currentColor;
+  filter: drop-shadow(-.0032em -.0048em 0 #fff) drop-shadow(.0032em .0048em 0 rgba(112, 112, 108, .62));
+}
+.end-icon .jet { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+/* each letter rises into place when the footer scrolls into view */
+.end-big i, .end-icon { opacity: 0; transform: translateY(.28em); transition: opacity .7s ease, transform .9s cubic-bezier(.2, .8, .2, 1); transition-delay: calc(var(--i) * 55ms); }
+.end-big.in i, .end-big.in .end-icon { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .end-big i, .end-icon { opacity: 1; transform: none; transition: none; } }
+
 /* narrower screens: the quote and the lines move under the fountain */
 @media (max-width: 1080px) {
   #site { height: auto; min-height: 100svh; padding-bottom: 4.5rem; }
@@ -332,6 +360,9 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
   .bio { position: static; padding: 0 8vw; margin: 2rem 0 0; text-align: center; }
   .bio p span { white-space: normal; }
   .replay { left: 6vw; } .x { right: 6vw; }
+  .end { padding: 0 6vw; min-height: 46svh; }
+  .end-row { font-size: 12px; }
+  .end-big { margin: 0 -6vw; }
 }
 
 @media (prefers-reduced-motion: reduce) {
