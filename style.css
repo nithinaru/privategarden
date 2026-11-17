@@ -77,6 +77,16 @@ a { color: inherit; }
 .stage { z-index: 2; }  /* the photo sits over the construction lines */
 .stage.card.out { opacity: 0; transform: scale(.97); transition: opacity .9s ease, transform .9s ease; }
 
+/* the stencil of the name: a pen line drawn round each letter, under the real letters */
+.ink { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 29; pointer-events: none; overflow: visible; transition: opacity .5s; }
+.ink.out { opacity: 0; }
+.ink text {
+  fill: none; stroke: var(--ink); stroke-width: 1.1px; stroke-opacity: .75; stroke-linejoin: round;
+  stroke-dasharray: var(--len); stroke-dashoffset: var(--len);
+  animation: ink-draw 2.4s linear var(--n) forwards;   /* the line itself is done in the first half */
+}
+@keyframes ink-draw { to { stroke-dashoffset: 0; } }
+
 .guides { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transition: opacity .6s; }
 .guides line { stroke: var(--rule); stroke-width: 1; transition: stroke-dashoffset 1.4s cubic-bezier(.65,0,.35,1); }
 .guides text { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; fill: var(--rule-text); opacity: 0; transition: opacity .4s; }
@@ -120,28 +130,18 @@ a { color: inherit; }
 /* during the intro it is a title card in the middle of the screen */
 .name.card { transform: translateY(calc(50svh - 50%)); }
 .name.still { transition: none; }
-/* each letter is three copies in one box: .o is its outline (the stencil), .b the black
-   letter, .a the other typeface it changes to on hover. the outline is drawn first,
-   then the black is written in over it: both arrive from the left behind a soft,
-   slanted edge, like a pen crossing the letter, one letter after the next.
-   (.o and .b are padded so ink that overhangs the letter's box is not clipped.) */
+/* the black letter is written in over its stencil: the ink arrives from the left
+   behind a soft, slanted edge, like a pen crossing the letter, one letter after the next.
+   (.b is padded so ink that overhangs the letter's box is not clipped.) */
 .ch { position: relative; display: inline-block; }
-.ch .b, .ch .o {
+.ch .b {
   display: inline-block; padding: .12em .07em; margin: -.12em -.07em; opacity: 0;
   -webkit-mask: linear-gradient(100deg, #000 44%, transparent 56%) 100% 0 / 300% 100% no-repeat;
           mask: linear-gradient(100deg, #000 44%, transparent 56%) 100% 0 / 300% 100% no-repeat;
 }
-.ch .o {
-  position: absolute; left: 0; top: 0; pointer-events: none; user-select: none;
-  color: transparent; -webkit-text-stroke: 1px rgba(17, 17, 17, .7);
-  transition: opacity .5s;
-}
-.name.stencil .ch .o { opacity: 1; animation: write .55s cubic-bezier(.45, 0, .25, 1) calc(var(--i) * 70ms) both; }
-.name.inked .ch .o { opacity: 0; }
 .name.set .ch .b { opacity: 1; animation: write .75s cubic-bezier(.45, 0, .25, 1) calc(var(--i) * 110ms) both; }
 @keyframes write { from { -webkit-mask-position: 100% 0; mask-position: 100% 0; } to { -webkit-mask-position: 0 0; mask-position: 0 0; } }
 .name.instant .ch .b { animation: none; -webkit-mask: none; mask: none; }
-.name.instant .ch .o { display: none; }
 /* on the page, each letter of the title changes to another typeface under the cursor */
 /* (only over the letter itself: the box of a letter hangs well below its baseline) */
 .ch .hit { position: absolute; left: 0; right: 0; top: 0; bottom: var(--drop, 24%); }

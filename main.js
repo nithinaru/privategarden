@@ -83,20 +83,36 @@
   addEventListener("resize", fitEnd);
   new IntersectionObserver(([e]) => { if (e.isIntersecting) endBig.classList.add("in"); }, { threshold: 0.35 }).observe(endBig);
 
-  // the name is stencilled first: the outline of each letter is drawn, one after the
-  // next. then the black ink is written into the outlines, and the outlines fade.
-  // (the outline is a copy of the same letter in the same box, so the two cannot disagree.)
+  // the name is stencilled first: a pen line draws the outline of each letter, one
+  // after the next. then the black ink is written into the outlines, and the pen
+  // lines fade. (the outlines are svg text laid exactly over the real letters.)
   async function inkName() {
     await fitName();
-    const n = nameEl.querySelectorAll(".ch").length;
-    nameEl.classList.add("stencil");
-    await wait((n - 1) * 70 + 750);                 // the stencil is drawn
+    const cs = getComputedStyle(nameEl), fs = parseFloat(cs.fontSize);
+    const tops = [...nameEl.querySelectorAll(".probe")].map((p) => p.getBoundingClientRect().top);
+    const baseOf = (r) => tops.reduce((a, b) => (Math.abs(b - (r.top + r.height * 0.75)) < Math.abs(a - (r.top + r.height * 0.75)) ? b : a));
+    const svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("class", "ink");
+    // the dash is one long stroke, longer than any letter's whole outline (safari counts
+    // the inner shapes of a, e and G in with the outer one, and left gaps with a short one)
+    svg.style.setProperty("--len", fs * 12);
+    const chs = [...nameEl.querySelectorAll(".ch")];
+    chs.forEach((c, i) => {
+      const r = glyph(c);
+      const t = document.createElementNS(SVGNS, "text");
+      t.setAttribute("x", r.left); t.setAttribute("y", baseOf(r));
+      t.style.cssText = `--n:${(i * 0.08).toFixed(2)}s;font-family:${cs.fontFamily};font-size:${fs}px;font-weight:${cs.fontWeight};font-variation-settings:${cs.fontVariationSettings};font-optical-sizing:${cs.fontOpticalSizing};letter-spacing:0`;
+      t.textContent = c.querySelector(".b").textContent;
+      svg.appendChild(t);
+    });
+    document.body.appendChild(svg);
+    await wait((chs.length - 1) * 80 + 1300);       // the stencil is drawn
     nameEl.classList.add("set");                    // the ink is written into it, 110ms apart
-    await wait((n - 1) * 110 + 850);
-    nameEl.classList.add("inked");
+    await wait((chs.length - 1) * 110 + 850);
+    svg.classList.add("out");
     await wait(500);
     nameEl.classList.add("instant");
-    nameEl.classList.remove("stencil", "inked");
+    svg.remove();
   }
 
   function buildName() {
@@ -118,7 +134,7 @@
       ch.className = "ch";
       ch.style.setProperty("--i", i++);
       ch.setAttribute("aria-hidden", "true");
-      ch.innerHTML = `<span class="o">${c}</span><span class="b">${c}</span><span class="a ${ALTS[k]}">${c}</span><span class="hit"></span>`;
+      ch.innerHTML = `<span class="b">${c}</span><span class="a ${ALTS[k]}">${c}</span><span class="hit"></span>`;
       nameEl.appendChild(ch);
     }
     // zero-size probe so I can find the baseline later
