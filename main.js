@@ -24,9 +24,10 @@
   }
   addEventListener("resize", () => fitName());
 
-  // each letter's outline is traced with a faint line, then it fills with ink
-  // and the line fades. letters start 0.1s apart. (svg text over the real
-  // name, swapped for the real one when it's done.)
+  // the name is written, not shown: for each letter a pen line traces the
+  // outline, then ink follows it across from left to right and the pen line
+  // lifts. letters start 0.13s apart, so the hand moves along the name.
+  // (svg text laid over the real name, swapped for the real one at the end.)
   async function inkName() {
     await fitName();
     const cs = getComputedStyle(nameEl), fs = parseFloat(cs.fontSize);
@@ -34,20 +35,29 @@
     const svg = document.createElementNS(SVGNS, "svg");
     svg.setAttribute("class", "ink");
     svg.style.setProperty("--len", fs * 5);
+    const font = `font-family:${cs.fontFamily};font-size:${fs}px;font-weight:${cs.fontWeight}`;
+    const mk = (tag, attrs, parent) => {
+      const n = document.createElementNS(SVGNS, tag);
+      for (const k in attrs) n.setAttribute(k, attrs[k]);
+      parent.appendChild(n);
+      return n;
+    };
     const chs = [...nameEl.querySelectorAll(".ch")];
     chs.forEach((c, i) => {
-      const t = document.createElementNS(SVGNS, "text");
-      t.setAttribute("x", c.getBoundingClientRect().left);
-      t.setAttribute("y", base);
-      t.style.cssText = `font-family:${cs.fontFamily};font-size:${fs}px;font-weight:${cs.fontWeight};--n:${i * 0.1}s`;
-      t.textContent = c.querySelector(".b").textContent;
-      svg.appendChild(t);
+      const r = c.getBoundingClientRect(), ch = c.querySelector(".b").textContent;
+      const g = mk("g", { style: `--n:${(i * 0.13).toFixed(2)}s` }, svg);
+      const clip = mk("clipPath", { id: "ink" + i }, g);
+      mk("rect", { x: r.left - fs * 0.08, y: base - fs, width: r.width + fs * 0.16, height: fs * 1.45 }, clip);
+      const fill = mk("text", { x: r.left, y: base, class: "f", style: font, "clip-path": `url(#ink${i})` }, g);
+      const pen = mk("text", { x: r.left, y: base, class: "o", style: font }, g);
+      fill.textContent = pen.textContent = ch;
     });
     document.body.appendChild(svg);
-    await wait((chs.length - 1) * 100 + 1850);
+    await wait((chs.length - 1) * 130 + 1550);
     nameEl.classList.add("instant", "set");
     svg.remove();
   }
+
   function buildName() {
     const txt = "Nithin Aruswamy";
     let i = 0, last = -1;

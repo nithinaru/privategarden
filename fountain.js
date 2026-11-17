@@ -1,85 +1,285 @@
-// the fountain as a hairline construction drawing: pale guide geometry first
-// (axis, levels, circles, the triangle the tiers sit in), then the fountain
-// itself in thin ink, then water. every line is one unit long (pathLength=1)
-// and draws itself; starts are staggered so the lines overlap. ~3s in all.
+// the fountain: a pencil drawing with real water running through it.
+//
+//  - the stone is svg linework (rims, fluting, rings, shading), each line given
+//    a slight hand wobble and drawn on in the order you'd sketch it
+//  - the water is a small particle simulation on a canvas over the drawing:
+//    a jet at the top, then each bowl spills over its rim into the next
+//  - the cursor is a hand in the water: streams break on it and splash round
+//    it. click (or tap) and the jet surges. the grass leans away from you.
 window.Fountain = (() => {
   const NS = "http://www.w3.org/2000/svg";
+  const VB = { x: 30, y: 50, w: 340, h: 316 };   // must match the svg viewBox
+  const CX = 200;
+  const rand = (a, b) => a + Math.random() * (b - a);
   const el = (tag, attrs = {}, parent) => {
     const n = document.createElementNS(NS, tag);
     for (const k in attrs) n.setAttribute(k, attrs[k]);
     parent && parent.appendChild(n);
     return n;
   };
-  const E = (cx, cy, rx, ry) =>
-    `M${cx - rx},${cy} A${rx},${ry} 0 1 0 ${cx + rx},${cy} A${rx},${ry} 0 1 0 ${cx - rx},${cy} Z`;
 
-  // pale construction, drawn first
-  const GUIDES = [
-    "M200,40 L200,372",                                   // axis
-    "M10,296 L390,296", "M10,200 L390,200", "M10,150 L390,150", "M10,115 L390,115",
-    E(200, 208, 152, 152),                                // the circle the basin sits on
-    E(200, 200, 72, 72),
-    "M200,58 L20,326", "M200,58 L380,326",                // the triangle the tiers fit inside
+  // ---------- the drawing ----------
+  const ring = (cy, rx, ry) => `M${CX - rx},${cy} A${rx},${ry} 0 1 0 ${CX + rx},${cy} A${rx},${ry} 0 1 0 ${CX - rx},${cy}`;
+  const front = (cy, rx, ry) => `M${CX - rx},${cy} A${rx},${ry} 0 0 0 ${CX + rx},${cy}`;
+  const bowl = (cy, rx, by, bw) =>
+    `M${CX - rx},${cy} C${CX - rx * 0.86},${cy + (by - cy) * 0.72} ${CX - bw * 2.4},${by} ${CX},${by} C${CX + bw * 2.4},${by} ${CX + rx * 0.86},${cy + (by - cy) * 0.72} ${CX + rx},${cy}`;
+  // carved ribs running from the rim down to the foot of a bowl
+  const ribs = (cy, rx, ry, by, bw, n) => {
+    const out = [];
+    for (let k = -n; k <= n; k++) {
+      const a = (k / (n + 0.7)) * 1.2;
+      const x0 = CX + rx * Math.sin(a), y0 = cy + ry * Math.cos(a) + 1.2, x1 = CX + bw * Math.sin(a);
+      out.push(`M${x0.toFixed(1)},${y0.toFixed(1)} Q${(x0 - (x0 - CX) * 0.1).toFixed(1)},${(y0 + (by - y0) * 0.78).toFixed(1)} ${x1.toFixed(1)},${by - 0.6}`);
+    }
+    return out;
+  };
+  // upright flutes round the basin wall
+  const flutes = () => {
+    const out = [];
+    for (let k = -10; k <= 10; k++) {
+      const a = (k * 8 * Math.PI) / 180, x = CX + 152 * Math.sin(a), y = 296 + 34 * Math.cos(a);
+      out.push(`M${x.toFixed(1)},${(y + 3.5).toFixed(1)} L${x.toFixed(1)},${(y + 22.5).toFixed(1)}`);
+    }
+    return out;
+  };
+  // short slanted pencil strokes; clipped to a shape by the caller
+  const strokes = (x0, x1, y0, y1, gap) => {
+    const out = [];
+    for (let x = x0; x < x1; x += gap) out.push(`M${x.toFixed(1)},${y1} L${(x + (y1 - y0) * 0.5).toFixed(1)},${y0}`);
+    return out;
+  };
+
+  // drawn in this order. `d` is one stroke or a list drawn as one run.
+  const DRAWING = [
+    // basin
+    { c: "f-line", d: ring(296, 152, 34) },
+    { c: "f-line", d: ring(297, 140, 28) },
+    { c: "f-line", d: ["M48,296 L48,322", "M352,296 L352,322"] },
+    { c: "f-line", d: front(322, 152, 34) },
+    { c: "f-line", d: [front(325, 158, 36), "M42,325 L42,332", "M358,325 L358,332", front(332, 158, 36)] },
+    { c: "f-detail", d: flutes() },
+    { c: "f-shade", d: strokes(262, 352, 300, 356, 3.4), clip: "M48,296 A152,34 0 0 0 352,296 L352,322 A152,34 0 0 1 48,322 Z" },
+    { c: "f-detail", d: ["M74,341 C130,349 270,349 326,341", "M100,347 C150,352 250,352 300,347", "M150,352 C180,354 220,354 250,352"] },
+    // pedestal
+    { c: "f-line", d: ["M186,300 C183,290 192,285 191,274 C190,262 196,256 195,241", "M214,300 C217,290 208,285 209,274 C210,262 204,256 205,241"] },
+    { c: "f-detail", d: ["M184,300 Q200,306 216,300", "M190.5,283 Q200,287 209.5,283", "M190.5,279 Q200,283 209.5,279", "M193.5,259 Q200,262 206.5,259"] },
+    { c: "f-shade", d: strokes(200, 216, 242, 300, 2.6), clip: "M200,241 L205,241 C204,256 210,262 209,274 C208,285 217,290 214,300 L200,300 Z" },
+    // lower bowl
+    { c: "f-line", d: ring(200, 72, 11) },
+    { c: "f-line", d: bowl(200, 72, 240, 6) },
+    { c: "f-detail", d: [ring(201, 65, 8.6), "M190,240 Q200,244 210,240"] },
+    { c: "f-detail", d: ribs(200, 72, 11, 240, 9, 4) },
+    { c: "f-shade", d: strokes(222, 272, 203, 240, 3), clip: "M128,200 A72,11 0 0 0 272,200 C262,229 214,240 200,240 C186,240 138,229 128,200 Z" },
+    // middle stem and bowl
+    { c: "f-line", d: ["M195,178 L193,196", "M205,178 L207,196", ring(187, 9, 4.6)] },
+    { c: "f-line", d: ring(150, 46, 7) },
+    { c: "f-line", d: bowl(150, 46, 178, 5) },
+    { c: "f-detail", d: [ring(151, 40.5, 5.2), ...ribs(150, 46, 7, 178, 7, 3)] },
+    { c: "f-shade", d: strokes(214, 246, 152, 178, 2.8), clip: "M154,150 A46,7 0 0 0 246,150 C240,170 210,178 200,178 C190,178 160,170 154,150 Z" },
+    // top stem and bowl
+    { c: "f-line", d: ["M196,134 L195,148", "M204,134 L205,148", ring(141, 6.4, 3.4)] },
+    { c: "f-line", d: ring(115, 28, 5) },
+    { c: "f-line", d: bowl(115, 28, 134, 4) },
+    { c: "f-detail", d: [ring(116, 23.5, 3.4), ...ribs(115, 28, 5, 134, 5, 2)] },
+    // finial
+    { c: "f-line", d: ["M196,115 C190,108 192,98 197,94 L197,89", "M204,115 C210,108 208,98 203,94 L203,89", ring(85, 4.6, 4.6)] },
+    { c: "f-detail", d: ["M194,104 Q200,108 206,104", "M195,99 Q200,102 205,99", "M197,92 L203,92"] },
+    // still water lying in the bowls
+    { c: "f-detail", d: ["M92,300 A110,17 0 0 0 308,300", "M124,307 A80,10 0 0 0 276,307", "M160,203 A44,4.5 0 0 0 240,203", "M176,152 A26,2.6 0 0 0 224,152"] },
   ];
 
-  // the fountain, bottom to top. `mask` is a paper fill that hides whatever is behind.
-  const PARTS = [
-    { lines: [E(200, 296, 152, 34), E(200, 297, 138, 27), "M48,296 L48,320", "M352,296 L352,320", "M48,320 A152,34 0 0 0 352,320"] },
-    { lines: ["M184,300 C190,272 192,240 194,204", "M216,300 C210,272 208,240 206,204"] },
-    { mask: "M128,200 C140,232 175,240 200,240 C225,240 260,232 272,200 Z",
-      lines: [E(200, 200, 72, 11), "M128,200 C140,232 175,240 200,240 C225,240 260,232 272,200"] },
-    { lines: ["M195,150 L193,198", "M205,150 L207,198", E(200, 182, 10, 6)] },
-    { mask: "M154,150 C165,172 185,178 200,178 C215,178 235,172 246,150 Z",
-      lines: [E(200, 150, 46, 7), "M154,150 C165,172 185,178 200,178 C215,178 235,172 246,150"] },
-    { lines: ["M196,115 L195,149", "M204,115 L205,149", E(200, 135, 7, 4.5)] },
-    { mask: "M172,115 C178,130 190,134 200,134 C210,134 222,130 228,115 Z",
-      lines: [E(200, 115, 28, 5), "M172,115 C178,130 190,134 200,134 C210,134 222,130 228,115"] },
-    { lines: ["M196,116 C190,108 192,98 197,94 L197,89", "M204,116 C210,108 208,98 203,94 L203,89", E(200, 84.5, 4.5, 4.5)] },
-  ];
+  // give a path the slight waver of a hand. sampled, then offset along its normal.
+  function wobble(measure, d, amp, seed) {
+    const p = el("path", { d }, measure);
+    const L = p.getTotalLength();
+    const n = Math.max(3, Math.ceil(L / 4.5));
+    let out = "";
+    for (let i = 0; i <= n; i++) {
+      const t = (i / n) * L;
+      const a = p.getPointAtLength(Math.max(t - 0.5, 0)), b = p.getPointAtLength(Math.min(t + 0.5, L)), c = p.getPointAtLength(t);
+      const dx = b.x - a.x, dy = b.y - a.y, m = Math.hypot(dx, dy) || 1;
+      const edge = Math.min(1, i / 2, (n - i) / 2);   // ends stay put so joins still meet
+      const o = amp * edge * (Math.sin(t * 0.13 + seed * 1.9) * 0.6 + Math.sin(t * 0.37 + seed * 3.3) * 0.4);
+      out += (i ? " L" : "M") + (c.x - (dy / m) * o).toFixed(1) + "," + (c.y + (dx / m) * o).toFixed(1);
+    }
+    p.remove();
+    return out;
+  }
 
-  // water, top down: falling streams, then the still surface in each bowl
-  const STREAMS = [
-    "M200,80 C197,66 190,64 185,74", "M200,80 C203,66 210,64 215,74",
-    "M174,116 C163,119 159,131 161,146", "M226,116 C237,119 241,131 239,146",
-    "M157,152 C142,157 136,176 138,196", "M243,152 C258,157 264,176 262,196",
-    "M131,203 C108,210 101,250 103,288", "M269,203 C292,210 299,250 297,288",
+  function sketch(svg, calm) {
+    const measure = el("g", { style: "visibility:hidden" }, svg);
+    let at = 0, seed = 1, clips = 0;
+    for (const part of DRAWING) {
+      const subs = [].concat(part.d).map((d) => wobble(measure, d, part.c === "f-line" ? 0.55 : 0.35, seed++));
+      let parent = svg;
+      if (part.clip) {
+        const id = "fc" + clips++;
+        el("path", { d: part.clip }, el("clipPath", { id }, svg));
+        parent = el("g", { "clip-path": `url(#${id})` }, svg);
+      }
+      const p = el("path", { d: subs.join(" "), class: part.c, pathLength: 1 }, parent);
+      if (calm) { p.style.strokeDashoffset = 0; continue; }
+      const dur = part.c === "f-line" ? 750 : part.c === "f-detail" ? 950 : 700;
+      p.style.transitionDuration = dur + "ms";
+      setTimeout(() => (p.style.strokeDashoffset = 0), at);
+      at += part.c === "f-shade" ? 60 : 95;
+    }
+    measure.remove();
+    return at; // when the last line starts
+  }
+
+  // ---------- the water ----------
+  const G = 330;                                           // gravity, drawing units / s²
+  const RIMS = [                                           // where each bowl spills from
+    { y: 116, rx: 25, ry: 4.2, rate: 75, wait: 0.5 },
+    { y: 151, rx: 43, ry: 6.2, rate: 110, wait: 0.95 },
+    { y: 201, rx: 69, ry: 10, rate: 160, wait: 1.45 },
   ];
-  const SURFACES = [E(200, 116, 20, 2.4), E(200, 151, 36, 4), E(200, 201, 60, 7), E(200, 298, 120, 20), E(200, 298, 96, 14)];
+  const POOLS = [                                          // where falling water can land
+    { y: 116, rx: 26, ry: 4.5 }, { y: 151, rx: 44, ry: 6.5 }, { y: 201, rx: 70, ry: 10.5 }, { y: 298, rx: 136, ry: 26, basin: true },
+  ];
+  const GROUND = 344, HAND = 15;
+
+  function water(wrap, startIn) {
+    const cv = document.createElement("canvas");
+    wrap.appendChild(cv);
+    const ctx = cv.getContext("2d");
+    let sc = 1, ox = 0, oy = 0, dpr = 1, box;
+    function fit() {
+      box = cv.getBoundingClientRect();
+      dpr = Math.min(devicePixelRatio || 1, 2);
+      cv.width = Math.round(box.width * dpr); cv.height = Math.round(box.height * dpr);
+      sc = Math.min(box.width / VB.w, box.height / VB.h);            // same fit as the svg: xMidYMax meet
+      ox = (box.width - VB.w * sc) / 2 - VB.x * sc;
+      oy = box.height - VB.h * sc - VB.y * sc;
+    }
+    fit();
+    addEventListener("resize", fit);
+
+    // the hand
+    const hand = { on: false, x: 0, y: 0, vx: 0, vy: 0, t: 0 };
+    let surge = 0;
+    const toUnits = (e) => { box = cv.getBoundingClientRect(); return [(e.clientX - box.left - ox) / sc, (e.clientY - box.top - oy) / sc]; };
+    wrap.addEventListener("pointermove", (e) => {
+      const [x, y] = toUnits(e), now = performance.now(), dt = Math.max((now - hand.t) / 1000, 0.008);
+      if (hand.on) { hand.vx = (x - hand.x) / dt; hand.vy = (y - hand.y) / dt; }
+      hand.x = x; hand.y = y; hand.t = now; hand.on = true;
+    });
+    wrap.addEventListener("pointerleave", () => (hand.on = false));
+    wrap.addEventListener("pointerdown", (e) => { const [x, y] = toUnits(e); hand.x = x; hand.y = y; hand.on = true; surge = 1; });
+
+    const drops = [], rings = [];
+    const owed = [0, 0, 0, 0];                             // fractional drops waiting to be let go
+    const spawn = (x, y, vx, vy, d, spray) => drops.push({ x, y, vx, vy, d, spray, a: rand(0.55, 0.95) });
+
+    function emit(t, dt) {
+      const flow = (wait) => Math.min(1, Math.max(0, (t - wait) / 0.9));
+      owed[3] += 55 * flow(0) * (1 + surge * 1.5) * dt;
+      for (; owed[3] >= 1; owed[3]--)                      // the jet
+        spawn(CX + rand(-1.5, 1.5), 82, rand(-1, 1) * rand(5, 16) * (1 + surge), -rand(60, 90) * (1 + surge * 0.9), rand(-0.4, 0.7), false);
+      RIMS.forEach((r, i) => {                             // each rim, along its front edge
+        owed[i] += r.rate * flow(r.wait) * (1 + surge * 0.5) * dt;
+        for (; owed[i] >= 1; owed[i]--) {
+          const a = rand(-1.42, 1.42), s = Math.sin(a), c = Math.cos(a);
+          spawn(CX + r.rx * s, r.y + r.ry * c, s * rand(9, 23) + rand(-2, 2), rand(-7, 3), c, false);
+        }
+      });
+    }
+
+    function step(dt) {
+      for (let i = drops.length - 1; i >= 0; i--) {
+        const p = drops[i], py = p.y;
+        p.vy += G * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+        if (hand.on) {                                     // break on the hand
+          const dx = p.x - hand.x, dy = p.y - hand.y, r2 = dx * dx + dy * dy;
+          if (r2 < HAND * HAND) {
+            const r = Math.sqrt(r2) || 0.01, nx = dx / r, ny = dy / r, vn = p.vx * nx + p.vy * ny;
+            p.x = hand.x + nx * HAND; p.y = hand.y + ny * HAND;
+            if (vn < 0) { p.vx -= 1.32 * vn * nx; p.vy -= 1.32 * vn * ny; }
+            p.vx += hand.vx * 0.3 + rand(-9, 9); p.vy += hand.vy * 0.3 + rand(-5, 3);
+          }
+        }
+        let landed = null;
+        if (p.vy > 0) {
+          for (const pool of POOLS) {
+            const sy = pool.y + pool.ry * p.d * 0.85;
+            if (py <= sy - 1 && p.y >= sy && Math.abs(p.x - CX) < pool.rx) { landed = pool; p.y = sy; break; }
+          }
+        }
+        if (landed || p.y > GROUND) {
+          if (landed && !p.spray) {
+            const n = landed.basin ? (Math.random() < 0.8 ? 1 : 2) : Math.random() < 0.45 ? 1 : 0;
+            for (let k = 0; k < n; k++) spawn(p.x, p.y - 0.5, rand(-17, 17), -rand(14, 42), p.d, true);
+            if (landed.basin && Math.random() < 0.05) rings.push({ x: p.x, y: p.y, age: 0 });
+          }
+          drops[i] = drops[drops.length - 1]; drops.pop();
+        }
+      }
+      for (let i = rings.length - 1; i >= 0; i--) if ((rings[i].age += dt) > 1.1) rings.splice(i, 1);
+      hand.vx *= 0.8; hand.vy *= 0.8;
+      surge = Math.max(0, surge - dt / 1.3);
+    }
+
+    // grass at the foot of the basin
+    const blades = [];
+    for (const [x0, x1, n] of [[36, 68, 10], [332, 364, 10], [78, 92, 3], [308, 322, 3]])
+      for (let i = 0; i < n; i++) blades.push({ x: rand(x0, x1), h: rand(9, 27), lean: rand(-5, 5), ph: rand(0, 6.3), push: 0 });
+
+    function draw(t) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.setTransform(sc * dpr, 0, 0, sc * dpr, ox * dpr, oy * dpr);
+      ctx.lineCap = "round";
+      // drops are drawn as short strokes along their path, like pencil dashes
+      for (const [lo, hi, w] of [[0, 0.75, 0.6], [0.75, 1, 0.85]]) {
+        ctx.beginPath();
+        for (const p of drops) {
+          if (p.a < lo || p.a >= hi) continue;
+          const k = p.spray ? 0.012 : 0.024;
+          ctx.moveTo(p.x - p.vx * k, p.y - p.vy * k); ctx.lineTo(p.x, p.y);
+        }
+        ctx.lineWidth = w; ctx.strokeStyle = `rgba(30,30,30,${lo ? 0.9 : 0.62})`; ctx.stroke();
+      }
+      for (const r of rings) {
+        const rx = 3 + r.age * 24;
+        ctx.beginPath(); ctx.ellipse(r.x, r.y, rx, rx * 0.2, 0, 0, 6.2832);
+        ctx.lineWidth = 0.5; ctx.strokeStyle = `rgba(30,30,30,${0.5 * (1 - r.age / 1.1)})`; ctx.stroke();
+      }
+      const grow = Math.min(1, Math.max(0, t / 1.2));
+      ctx.beginPath();
+      for (const b of blades) {
+        let want = 0;
+        if (hand.on && hand.y > 285) { const dx = b.x - hand.x; if (Math.abs(dx) < 46) want = Math.sign(dx || 1) * (1 - Math.abs(dx) / 46) * b.h * 0.55; }
+        b.push += (want - b.push) * 0.1;
+        const h = b.h * grow, tip = b.lean + Math.sin(t * 1.25 + b.ph) * b.h * 0.08 + b.push;
+        ctx.moveTo(b.x, 342); ctx.quadraticCurveTo(b.x + tip * 0.3, 342 - h * 0.62, b.x + tip, 342 - h);
+      }
+      ctx.lineWidth = 0.65; ctx.strokeStyle = "rgba(30,30,30,.85)"; ctx.stroke();
+    }
+
+    // run only while the fountain is on screen and the tab is in front
+    let seen = true, last = 0, t = -startIn, raf = 0;
+    new IntersectionObserver(([e]) => { seen = e.isIntersecting; if (seen && !raf) raf = requestAnimationFrame(frame); }).observe(wrap);
+    function frame(now) {
+      raf = 0;
+      if (!seen || document.hidden) { last = 0; return; }
+      const dt = last ? Math.min((now - last) / 1000, 0.034) : 0.016;
+      last = now; t += dt;
+      if (t > 0) { emit(t, dt); step(dt); }
+      draw(t + startIn);
+      raf = requestAnimationFrame(frame);
+    }
+    document.addEventListener("visibilitychange", () => { if (!document.hidden && seen && !raf) raf = requestAnimationFrame(frame); });
+    raf = requestAnimationFrame(frame);
+  }
 
   function start(svg) {
     if (!svg || svg.dataset.on) return;
     svg.dataset.on = "1";
     svg.replaceChildren();
     const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let at = 0; // running start time, ms
-
-    const draw = (parent, d, cls, dur, gap) => {
-      const p = el("path", { d, class: cls, pathLength: 1 }, parent);
-      if (calm) { p.style.strokeDashoffset = 0; return p; }
-      p.style.transitionDuration = dur + "ms";
-      setTimeout(() => (p.style.strokeDashoffset = 0), at);
-      at += gap;
-      return p;
-    };
-
-    const guides = el("g", {}, svg);
-    GUIDES.forEach((d) => draw(guides, d, "f-guide", 1100, 60));
-
-    at = 350;
-    const stone = el("g", {}, svg);
-    for (const part of PARTS) {
-      const g = el("g", {}, stone);
-      if (part.mask) el("path", { d: part.mask, class: "f-mask" }, g);
-      part.lines.forEach((d) => draw(g, d, "f-line", 900, 55));
-    }
-
-    at += 250;
-    const water = el("g", {}, svg);
-    const streams = STREAMS.map((d) => draw(water, d, "f-water", 500, 70));
-    SURFACES.forEach((d) => draw(water, d, "f-still", 700, 50));
-    if (calm) return;
-    // once drawn, the streams turn into falling dashes
-    setTimeout(() => streams.forEach((s) => s.classList.add("run")), at + 600);
+    const lastLine = sketch(svg, calm);
+    if (!calm) water(svg.parentElement, lastLine / 1000 + 0.3);
   }
 
   return { start };
