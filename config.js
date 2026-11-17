@@ -23,14 +23,12 @@ window.SITE = {
   caption: ["A collective by Nithin Aruswamy · Est. 2026"],
 
 
-  // the 20s montage (music baked in). if this file is missing, a placeholder reel plays instead.
+  // the intro film. it starts silent; holding the mouse or a finger down turns its sound on.
+  // if this file is missing, a placeholder reel plays instead.
   video: "assets/intro.mp4",
-
-  // subtitles, in seconds of the video. rendered live in the page, so don't burn them into the mp4.
-  cues: [
-    { start: 12.0, end: 16.0, text: "Less, but better." },
-    { start: 16.2, end: 99,   text: "The world can be saved through design." },
-  ],
+  // the second its picture ends (21s + 21 frames at 24fps). the page moves on to the photos
+  // there, and the rest of the soundtrack keeps playing under them.
+  cut: 21.875,
 
   // photos that flicker inside the card after the reel. ~12-16 is a good number.
   // e.g. "assets/flicker/01.jpg". empty = generated placeholder frames.

@@ -34,15 +34,6 @@ a { color: inherit; }
 #intro.clear { background: transparent; pointer-events: none; }
 #intro.gone { display: none; }
 
-.gate {
-  position: absolute; inset: 0; z-index: 5;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
-  color: #fff; font-family: var(--serif); font-size: clamp(2rem, 5vw, 4rem); font-weight: 300;
-  transition: opacity .5s;
-}
-.gate span { font-family: var(--mono); font-size: .7rem; letter-spacing: .2em; text-transform: uppercase; opacity: .5; }
-.gate.out { opacity: 0; pointer-events: none; }
-
 .stage {
   position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
   background: #000; overflow: hidden;
@@ -76,17 +67,6 @@ a { color: inherit; }
 .flicker.on { display: block; }
 .flicker > * { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
-.sub {
-  position: absolute; left: 0; right: 0; bottom: 9vh; z-index: 3;
-  text-align: center; padding: 0 1.5rem;
-  color: #fff; font-family: var(--serif); font-size: clamp(1.1rem, 2.4vw, 1.9rem); font-weight: 300;
-  opacity: 0; transform: translateY(6px);
-  transition: opacity .35s, transform .35s, bottom .9s cubic-bezier(.7,0,.2,1);
-}
-.sub.on { opacity: 1; transform: none; }
-/* after the shrink the line sits under the card, never on top of it */
-.sub.rise { bottom: calc(50vh - var(--card) * 9 / 32 - 4.2rem); font-size: clamp(1rem, 1.8vw, 1.35rem); }
-#intro.paper .sub { color: var(--ink); }
 :root { --card: min(320px, 72vw); }
 
 /* small index pinned to the card's top-left corner while the photos run (placed in main.js) */
@@ -138,6 +118,23 @@ a { color: inherit; }
   color: #fff; opacity: .45; transition: opacity .2s;
 }
 #intro.paper .skip { color: var(--ink); }
+
+/* the tag that rides beside the cursor while the film plays. holding down fills it
+   from left to right; when it is full the sound comes on. before the mouse has moved,
+   and on touch screens, it rests at the foot of the screen. */
+.tag {
+  position: fixed; left: 50%; bottom: 9vh; z-index: 7; pointer-events: none; overflow: hidden;
+  transform: translateX(-50%); padding: .55em .85em .5em;
+  background: var(--ink); color: #fff; box-shadow: 0 0 0 1px rgba(255, 255, 255, .3);
+  font-family: var(--mono); font-size: .64rem; letter-spacing: .2em; text-transform: uppercase; white-space: nowrap;
+  opacity: 0; transition: opacity .35s;
+}
+.tag.on { opacity: 1; }
+.tag.follow { left: 0; top: 0; bottom: auto; }
+.tag i { position: absolute; inset: 0; background: #fff; mix-blend-mode: difference; transform: scaleX(0); transform-origin: left; transition: transform .25s ease-out; }
+.tag.hold i { transform: scaleX(1); transition: transform .65s linear; }
+.tag.done i { transform: scaleX(1); transition: none; }
+#intro { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
 /* ---------- name ---------- */
 /* Source Serif 4 at its display optical size, like bharadwhat, a touch heavier and looser.

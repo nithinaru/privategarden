@@ -1,11 +1,11 @@
-// intro sequence: enter -> reel -> card -> flicker -> ruler lines -> name -> hero
+// intro sequence: film -> card -> flicker -> ruler lines -> name -> hero
 (() => {
   const S = window.SITE;
   const $ = (id) => document.getElementById(id);
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const SVGNS = "http://www.w3.org/2000/svg";
 
-  const intro = $("intro"), stage = $("stage"), reel = $("reel"), sub = $("sub");
+  const intro = $("intro"), stage = $("stage"), reel = $("reel");
   const nameEl = $("name"), guidesEl = $("guides");
   let done = false;
 
@@ -141,41 +141,77 @@
     el.innerHTML = `<span>${text}</span><span class="hl-grad" aria-hidden="true">${text}</span>`;
   });
 
-  // ---- subtitles ----
-  let shown = null;
-  function showCue(text) {
-    if (text === shown) return;
-    shown = text;
-    sub.classList.remove("on");
-    if (!text) return;
-    sub.textContent = text;
-    requestAnimationFrame(() => sub.classList.add("on"));
+  // ---- hold for audio ----
+  // the film starts silent (a browser will not play sound unasked). a tag rides beside
+  // the cursor; holding the mouse or a finger down fills it, and when it is full the
+  // sound comes on and stays on.
+  const tag = $("tag"), HOLD = 650;
+  let holdT = 0, audio = false, retry = false;
+  const tagOn = () => { if (!audio) tag.classList.add("on"); };
+  const tagOff = () => { clearTimeout(holdT); tag.classList.remove("on", "hold"); };
+  function unmute() {
+    reel.muted = false; reel.volume = 0;
+    const up = () => { reel.volume = Math.min(1, reel.volume + 0.08); if (reel.volume < 1 && !reel.muted) setTimeout(up, 30); };
+    up();
+    // some browsers stop a film that is unmuted outside a tap. carry on silent and
+    // try again the moment the hold is released, which does count as a tap.
+    setTimeout(() => { if (reel.paused && !reel.ended && !done) { reel.muted = true; retry = true; reel.play().catch(() => {}); } }, 80);
   }
-  const cueAt = (t) => (S.cues.find((c) => t >= c.start && t < c.end) || {}).text || null;
+  function audioOn() {
+    if (audio) return;
+    audio = true;
+    tag.classList.add("done");
+    tag.querySelector("span").textContent = "Audio on";
+    setTimeout(() => tag.classList.remove("on"), 1500);
+    unmute();
+  }
+  intro.addEventListener("pointerdown", (e) => {
+    if (audio || !tag.classList.contains("on") || e.target.closest(".skip")) return;
+    tag.classList.add("hold");
+    holdT = setTimeout(audioOn, HOLD);
+  });
+  addEventListener("pointerup", () => {
+    clearTimeout(holdT); tag.classList.remove("hold");
+    if (retry) { retry = false; reel.muted = false; reel.volume = 1; reel.play().catch(() => {}); }
+  });
+  addEventListener("pointercancel", () => { clearTimeout(holdT); tag.classList.remove("hold"); });
+  addEventListener("pointermove", (e) => {
+    if (e.pointerType !== "mouse" || done) return;
+    const x = Math.min(e.clientX + 16, innerWidth - tag.offsetWidth - 8), y = Math.min(e.clientY + 20, innerHeight - tag.offsetHeight - 8);
+    tag.classList.add("follow");
+    tag.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  });
+  addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && tag.classList.contains("on")) audioOn(); });
+  intro.addEventListener("contextmenu", (e) => e.preventDefault());
 
-  // ---- 1. the reel ----
-  function videoExists() {
+  // ---- 1. the film ----
+  // "ok" = ready to play, "missing" = no such file, "slow" = still not ready after 10s
+  function videoState() {
     return new Promise((res) => {
+      reel.muted = true;
       reel.src = S.video;
-      const ok = () => { clean(); res(true); };
-      const bad = () => { clean(); res(false); };
-      const clean = () => { reel.removeEventListener("canplay", ok); reel.removeEventListener("error", bad); };
+      const end = (v) => { reel.removeEventListener("canplay", ok); reel.removeEventListener("error", bad); clearTimeout(t); res(v); };
+      const ok = () => end("ok"), bad = () => end("missing");
       reel.addEventListener("canplay", ok);
       reel.addEventListener("error", bad);
-      setTimeout(bad, 2500);
+      const t = setTimeout(() => end("slow"), 10000);
     });
   }
 
   async function playReel() {
-    if (await videoExists()) {
+    const state = await videoState();
+    if (state === "ok") {
       reel.classList.add("on");
-      reel.ontimeupdate = () => showCue(cueAt(reel.currentTime));
+      reel.addEventListener("ended", tagOff);
+      // the picture ends at S.cut; the page moves on there while the sound plays out
+      const cut = S.cut || Infinity;
       await new Promise((res) => {
-        reel.onended = res;
-        reel.play().catch(res);
+        const watch = () => { if (done || reel.ended || reel.currentTime >= cut) return res(); requestAnimationFrame(watch); };
+        reel.play().then(() => { tagOn(); watch(); }).catch(res);
       });
       return;
     }
+    if (state === "slow") return;                 // a connection too slow for the film goes straight to the photos
     // no video yet: an 8s stand-in that hits the same beats
     const ph = $("placeholder");
     ph.classList.add("on");
@@ -183,14 +219,12 @@
     const t = document.createElement("div"); t.className = "t"; t.textContent = "drop assets/intro.mp4";
     ph.append(n, t);
     const start = performance.now();
-    const scale = 8 / 20; // map the real 20s cue times onto 8s
     while (!done) {
       const s = (performance.now() - start) / 1000;
       if (s > 8) break;
       const beat = Math.floor(s / 0.5);
       n.textContent = "clip " + String(Math.min(beat + 1, 16)).padStart(2, "0");
       ph.classList.toggle("hit", s < 4.6 && beat % 4 === 3);
-      showCue(cueAt(s / scale));
       await wait(50);
     }
     ph.classList.remove("hit");
@@ -198,7 +232,6 @@
 
   // ---- 2. shrink to a card ----
   async function toCard() {
-    sub.classList.remove("on");                   // the reel's subtitles end with the reel
     intro.classList.add("paper");
     stage.classList.add("card");
     await wait(1100);
@@ -366,6 +399,7 @@
     done = true;
     try { localStorage.setItem("pg-seen", "1"); } catch (e) {}
     reel.pause();
+    tagOff();
     intro.classList.add("gone");
     document.body.classList.remove("intro-on");
     document.body.classList.add("live");
@@ -377,7 +411,6 @@
   }
 
   async function run() {
-    $("enter").classList.add("out");
     await playReel(); if (done) return;
     await toCard(); if (done) return;
     await flicker(); if (done) return;
@@ -396,5 +429,5 @@
   $("skip").onclick = () => finish(true);
   if (calm) finish(true);
   else if (seen && !force) finish(true, true);
-  else $("enter").onclick = run;
+  else run();
 })();
