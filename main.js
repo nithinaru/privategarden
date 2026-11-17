@@ -147,14 +147,37 @@
     if (S.flicker.length) {
       frames = S.flicker.map((src) => { const im = new Image(); im.src = src; im.alt = ""; return im; });
       await Promise.all(frames.map((im) => im.decode().catch(() => {})));
+      const ok = frames.filter((im) => im.naturalWidth > 0); // never flash a photo that failed to load
+      frames = ok.length ? ok : fakeFrames(16);
     } else {
       frames = fakeFrames(16);
     }
     reel.classList.remove("on");
     $("placeholder").classList.remove("on");
     box.classList.add("on");
-    const counter = $("count");
+    const counter = $("count"), grid = $("fgrid");
     counter.classList.add("on");
+
+    // every cut the card takes a new size, and guide lines snap to its edges,
+    // so the frame re-measures itself around each photo. hard cuts, no easing.
+    const base = stage.getBoundingClientRect().width;
+    const SHAPES = [[1, 16 / 9], [0.75, 4 / 3], [1.25, 16 / 9], [0.7, 1], [1.1, 3 / 2], [1.35, 2.2], [0.88, 16 / 9]];
+    const mk = (cls) => { const i = document.createElement("i"); i.className = cls; grid.appendChild(i); return i; };
+    const hs = [0, 1, 2, 3].map(() => mk("h")), vs = [0, 1, 2, 3].map(() => mk("v"));
+    const STEP = 48, rnd = (n) => 1 + Math.floor(Math.random() * n);
+    const place = (i) => {
+      const [k, ratio] = SHAPES[i % SHAPES.length];
+      const w = Math.min(base * k, innerWidth * 0.9), h = w / ratio;
+      const l = (innerWidth - w) / 2, t = (innerHeight - h) / 2;
+      Object.assign(stage.style, { width: w + "px", height: h + "px", left: l + "px", top: t + "px" });
+      // two lines on the card's edges, two further out on a 48px rhythm
+      [t, t + h, t - STEP * rnd(3), t + h + STEP * rnd(3)].forEach((y, n) => (hs[n].style.top = y + "px"));
+      [l, l + w, l - STEP * rnd(5), l + w + STEP * rnd(5)].forEach((x, n) => (vs[n].style.left = x + "px"));
+      Object.assign(counter.style, { left: l + "px", top: t - 20 + "px" });
+    };
+    stage.classList.add("cut");
+    grid.classList.add("on");
+
     // starts slow and quickens a little, but every photo stays readable.
     // a short set loops so there are always at least 8 beats.
     const count = Math.max(frames.length, 8);
@@ -162,10 +185,12 @@
     for (let i = 0; i < count && !done; i++) {
       const k = i % frames.length;
       box.replaceChildren(frames[k]);
+      place(i);
       counter.textContent = `${pad(k + 1)} / ${pad(frames.length)}`;
-      await wait(420 - 220 * (i / Math.max(count - 1, 1)));
+      await wait(380 - 160 * (i / Math.max(count - 1, 1)));
     }
     await wait(250);
+    grid.classList.remove("on");
     box.replaceChildren();
     counter.classList.remove("on");
     sub.classList.remove("on");
