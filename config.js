@@ -7,11 +7,11 @@ window.SITE = {
   quote: { text: "Good design is as little design as possible.", by: "Dieter Rams" },
 
   // the three lines on the right of the fountain. **double stars** make a word bold,
-  // and bold words get the colour sweep on hover.
+  // [square brackets](https://a.link) make a bold link. both get the colour sweep on hover.
   bio: [
-    "Design can save the world.",
+    "[Global traveler](https://travel.nithinaruswamy.com) turned designer.",
     "Architected ad campaign for **CapCut Design Studio**.",
-    "Tending **Private Garden**, opening soon.",
+    "Tending **Private Garden**.",
   ],
   // where the About button goes
   about: "https://nithinaruswamy.com",
