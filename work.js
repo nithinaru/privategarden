@@ -3,7 +3,9 @@
 //              diagonal, pushing the phrases apart
 //   0.22-0.36  the phrases fade
 //   0.30-0.52  the stack bursts into a scattered field, cards at full size
-//   0.45-1.00  the field drifts up and away
+//   0.45-1.00  the field drifts up and away. the cards are at different depths: the
+//              bigger a card, the nearer it is, so it moves faster and passes over
+//              the smaller ones behind it
 // the cards are the items in config.js.
 (() => {
   const S = window.SITE.work || {};
@@ -32,6 +34,8 @@
     const ratio = it.ratio || 16 / 9;
     return { el: a, ratio, size: 0.55 + rnd() * 0.45, fx: rnd(), fy: rnd(), jit: rnd(), d: Math.abs(i - MID) };
   });
+  // depth: how fast a card travels as the field drifts (1 = the pace of the page)
+  cards.forEach((c) => { c.sp = 0.6 + ((c.size - 0.55) / 0.45) * 0.9; c.near = 100 + Math.round(c.size * 100); });
   // nearest the middle shows first and sits on top
   const order = cards.map((c, i) => i).sort((a, b) => cards[a].d - cards[b].d);
   order.forEach((ci, n) => { cards[ci].rank = n; cards[ci].el.style.zIndex = 300 - n; });
@@ -60,13 +64,17 @@
     drift = Math.max(0, lowest - (H / 2 - 56));
     // scroll length: a fixed stretch for the stack and the burst, then as long as the drift needs
     intro = H * 2.3;
-    sec.style.height = intro + drift * 1.15 + H + "px";
+    // the depth needs room to show: the near cards get most of a screen of extra travel,
+    // and the section is long enough to scroll through it
+    reach = H * 0.9;
+    travel = Math.max(drift, reach);
+    sec.style.height = intro + travel * 1.15 + H + "px";
     // the two phrases are different lengths, so the group is nudged sideways until
     // phrase + stack + phrase sits in the middle of the screen as one line
     const k = Math.min(1, W / 1100);
     nudge = W < 700 ? 0 : ((wordL.offsetWidth - wordR.offsetWidth) / 2) * k;
   }
-  let drift = 0, nudge = 0, intro = 1;
+  let drift = 0, nudge = 0, intro = 1, reach = 0, travel = 0;
 
   const clamp = (v) => Math.min(1, Math.max(0, v));
   const span = (p, a, b) => clamp((p - a) / (b - a));
@@ -90,17 +98,21 @@
       wordR.style.transform = `translate(${gap + nudge}px, -50%) scale(${k})`;
     }
     wordL.style.opacity = wordR.style.opacity = wordA;
-    const up = ease(clamp((s - intro * 0.86) / (intro * 0.14 + drift * 1.15))) * drift;
+    const q = ease(clamp((s - intro * 0.86) / (intro * 0.14 + travel * 1.15)));   // how far through the drift
+    const up = q * drift;
 
     for (const c of cards) {
       const born = 0.02 + (c.rank / N) * 0.24;
       const pop = out(span(p, born, born + 0.035));
       const fly = ease(span(p, 0.3 + c.jit * 0.06, 0.46 + c.jit * 0.06));
-      const x = c.sx + nudge * (1 - fly) + (c.tx - c.sx) * fly, y = c.sy + (c.ty - c.sy) * fly - up * fly;
+      // every card ends where the grid puts it; the near ones start further down and
+      // cover more ground on the way, the far ones start higher and cover less
+      const x = c.sx + nudge * (1 - fly) + (c.tx - c.sx) * fly, y = c.sy + (c.ty + (c.sp - 1) * reach * (1 - q) - c.sy) * fly - up * fly;
       const s = (c.ss * (0.55 + 0.45 * pop)) * (1 - fly) + fly;
       c.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${s.toFixed(4)})`;
       c.el.style.opacity = pop;
       c.el.classList.toggle("open", fly > 0.9);
+      c.el.style.zIndex = fly > 0.5 ? c.near : 300 - c.rank;
     }
   }
 

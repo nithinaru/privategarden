@@ -25,6 +25,10 @@
     const size = (fs * (innerWidth * 0.94)) / w;
     nameEl.style.fontSize = size + "px";
     $("site").style.setProperty("--title", size + "px");   // the layout below makes room for it
+    // how far a letter's box hangs below its baseline: the hover area stops short of that
+    // (layout offsets, not screen boxes: the letters may be mid-rise when this runs)
+    const pr = nameEl.querySelector(".probe");
+    if (pr) nameEl.style.setProperty("--drop", Math.max(0, chs[0].offsetTop + chs[0].offsetHeight - pr.offsetTop - size * 0.02) + "px");
     placeSides();
   }
   addEventListener("resize", () => fitName());
@@ -64,14 +68,34 @@
   addEventListener("resize", fitEnd);
   new IntersectionObserver(([e]) => { if (e.isIntersecting) endBig.classList.add("in"); }, { threshold: 0.35 }).observe(endBig);
 
-  // the name arrives a letter at a time: each one rises a little and fades in,
-  // 70ms after the one before it.
+  // the name is stencilled first: a pen line traces the outline of each letter, one
+  // after the next. then the black letters rise into their outlines, and the pen
+  // lines fade. (the outlines are svg text laid exactly over the real name.)
   async function inkName() {
     await fitName();
-    const n = nameEl.querySelectorAll(".ch").length;
-    nameEl.classList.add("set");
-    await wait((n - 1) * 70 + 900);
+    const cs = getComputedStyle(nameEl), fs = parseFloat(cs.fontSize);
+    const tops = [...nameEl.querySelectorAll(".probe")].map((p) => p.getBoundingClientRect().top);
+    const baseOf = (r) => tops.reduce((a, b) => (Math.abs(b - (r.top + r.height * 0.75)) < Math.abs(a - (r.top + r.height * 0.75)) ? b : a));
+    const svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("class", "ink");
+    svg.style.setProperty("--len", fs * 5);
+    const chs = [...nameEl.querySelectorAll(".ch")];
+    chs.forEach((c, i) => {
+      const r = c.getBoundingClientRect();
+      const t = document.createElementNS(SVGNS, "text");
+      t.setAttribute("x", r.left); t.setAttribute("y", baseOf(r));
+      t.setAttribute("style", `--n:${(i * 0.08).toFixed(2)}s;font-family:${cs.fontFamily};font-size:${fs}px;font-weight:${cs.fontWeight}`);
+      t.textContent = c.querySelector(".b").textContent;
+      svg.appendChild(t);
+    });
+    document.body.appendChild(svg);
+    await wait((chs.length - 1) * 80 + 800);        // the stencil is drawn
+    nameEl.classList.add("set");                    // the letters rise into it, 70ms apart
+    await wait((chs.length - 1) * 70 + 500);
+    svg.classList.add("out");
+    await wait(500);
     nameEl.classList.add("instant");
+    svg.remove();
   }
 
   function buildName() {
@@ -93,7 +117,7 @@
       ch.className = "ch";
       ch.style.setProperty("--i", i++);
       ch.setAttribute("aria-hidden", "true");
-      ch.innerHTML = `<span class="b">${c}</span><span class="a ${ALTS[k]}">${c}</span>`;
+      ch.innerHTML = `<span class="b">${c}</span><span class="a ${ALTS[k]}">${c}</span><span class="hit"></span>`;
       nameEl.appendChild(ch);
     }
     // zero-size probe so I can find the baseline later
