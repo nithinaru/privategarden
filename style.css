@@ -12,6 +12,7 @@
 html, body { background: var(--paper); color: var(--ink); }
 body { font-family: var(--sans); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 body.intro-on { overflow: hidden; }
+::selection { background: var(--ink); color: #fff; }   /* selected text: white on black */
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 a { color: inherit; }
 
