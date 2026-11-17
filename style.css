@@ -77,15 +77,19 @@ a { color: inherit; }
 .stage { z-index: 2; }  /* the photo sits over the construction lines */
 .stage.card.out { opacity: 0; transform: scale(.97); transition: opacity .9s ease, transform .9s ease; }
 
-/* the stencil of the name: a pen line drawn round each letter, under the real letters */
-.ink { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 29; pointer-events: none; overflow: visible; transition: opacity .5s; }
-.ink.out { opacity: 0; }
-.ink text {
-  fill: none; stroke: var(--ink); stroke-width: 1.1px; stroke-opacity: .75; stroke-linejoin: round;
+/* the title being made, over the ruler lines: for each letter a hairline (.o) draws
+   the outline, the ink (.f) fades in behind it, then the hairline lifts */
+.ink { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 31; pointer-events: none; overflow: visible; }
+.ink .f { fill: var(--ink); stroke: none; fill-opacity: 0; animation: ink-fill .4s cubic-bezier(.42, 0, 1, 1) calc(var(--n) + .8s) forwards; }
+.ink .o {
+  fill: none; stroke: var(--ink); stroke-width: .6px; stroke-opacity: .2; stroke-linejoin: round;
   stroke-dasharray: var(--len); stroke-dashoffset: var(--len);
-  animation: ink-draw 2.4s linear var(--n) forwards;   /* the line itself is done in the first half */
+  /* the dash is far longer than the outline, so the line itself is done in about 0.6s */
+  animation: ink-draw 1.56s cubic-bezier(.42, 0, .58, 1) var(--n) forwards, ink-line .2s linear calc(var(--n) + 1.6s) forwards;
 }
 @keyframes ink-draw { to { stroke-dashoffset: 0; } }
+@keyframes ink-fill { to { fill-opacity: 1; } }
+@keyframes ink-line { to { stroke-opacity: 0; } }
 
 .guides { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transition: opacity .6s; }
 .guides line { stroke: var(--rule); stroke-width: 1; transition: stroke-dashoffset 1.4s cubic-bezier(.65,0,.35,1); }
@@ -130,18 +134,11 @@ a { color: inherit; }
 /* during the intro it is a title card in the middle of the screen */
 .name.card { transform: translateY(calc(50svh - 50%)); }
 .name.still { transition: none; }
-/* the black letter is written in over its stencil: the ink arrives from the left
-   behind a soft, slanted edge, like a pen crossing the letter, one letter after the next.
-   (.b is padded so ink that overhangs the letter's box is not clipped.) */
+/* a letter of the title. it stays unseen while the intro draws and inks a copy of it
+   (see .ink), and is simply there once that is done. */
 .ch { position: relative; display: inline-block; }
-.ch .b {
-  display: inline-block; padding: .12em .07em; margin: -.12em -.07em; opacity: 0;
-  -webkit-mask: linear-gradient(100deg, #000 44%, transparent 56%) 100% 0 / 300% 100% no-repeat;
-          mask: linear-gradient(100deg, #000 44%, transparent 56%) 100% 0 / 300% 100% no-repeat;
-}
-.name.set .ch .b { opacity: 1; animation: write .75s cubic-bezier(.45, 0, .25, 1) calc(var(--i) * 110ms) both; }
-@keyframes write { from { -webkit-mask-position: 100% 0; mask-position: 100% 0; } to { -webkit-mask-position: 0 0; mask-position: 0 0; } }
-.name.instant .ch .b { animation: none; -webkit-mask: none; mask: none; }
+.ch .b { opacity: 0; }
+.name.set .ch .b { opacity: 1; }
 /* on the page, each letter of the title changes to another typeface under the cursor */
 /* (only over the letter itself: the box of a letter hangs well below its baseline) */
 .ch .hit { position: absolute; left: 0; right: 0; top: 0; bottom: var(--drop, 24%); }

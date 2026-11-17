@@ -83,9 +83,10 @@
   addEventListener("resize", fitEnd);
   new IntersectionObserver(([e]) => { if (e.isIntersecting) endBig.classList.add("in"); }, { threshold: 0.35 }).observe(endBig);
 
-  // the name is stencilled first: a pen line draws the outline of each letter, one
-  // after the next. then the black ink is written into the outlines, and the pen
-  // lines fade. (the outlines are svg text laid exactly over the real letters.)
+  // the name is made a letter at a time, pen and ink crossing the word together: a
+  // hairline draws the outline of a letter, its ink fades in 0.8s behind the pen, and
+  // the hairline lifts. letters start 0.1s apart. (svg text laid exactly over the real
+  // letters, which take its place at the end.)
   async function inkName() {
     await fitName();
     const cs = getComputedStyle(nameEl), fs = parseFloat(cs.fontSize);
@@ -93,25 +94,24 @@
     const baseOf = (r) => tops.reduce((a, b) => (Math.abs(b - (r.top + r.height * 0.75)) < Math.abs(a - (r.top + r.height * 0.75)) ? b : a));
     const svg = document.createElementNS(SVGNS, "svg");
     svg.setAttribute("class", "ink");
-    // the dash is one long stroke, longer than any letter's whole outline (safari counts
-    // the inner shapes of a, e and G in with the outer one, and left gaps with a short one)
+    // the pen line is one long dash, longer than any letter's whole outline (safari counts
+    // the inner shapes of a, e and G in with the outer one, and leaves gaps with a short one)
     svg.style.setProperty("--len", fs * 12);
+    const font = `font-family:${cs.fontFamily};font-size:${fs}px;font-weight:${cs.fontWeight};font-variation-settings:${cs.fontVariationSettings};font-optical-sizing:${cs.fontOpticalSizing};letter-spacing:0`;
     const chs = [...nameEl.querySelectorAll(".ch")];
     chs.forEach((c, i) => {
-      const r = glyph(c);
-      const t = document.createElementNS(SVGNS, "text");
-      t.setAttribute("x", r.left); t.setAttribute("y", baseOf(r));
-      t.style.cssText = `--n:${(i * 0.08).toFixed(2)}s;font-family:${cs.fontFamily};font-size:${fs}px;font-weight:${cs.fontWeight};font-variation-settings:${cs.fontVariationSettings};font-optical-sizing:${cs.fontOpticalSizing};letter-spacing:0`;
-      t.textContent = c.querySelector(".b").textContent;
-      svg.appendChild(t);
+      const r = glyph(c), y = baseOf(r), ch = c.querySelector(".b").textContent;
+      for (const cls of ["f", "o"]) {
+        const t = document.createElementNS(SVGNS, "text");
+        t.setAttribute("class", cls); t.setAttribute("x", r.left); t.setAttribute("y", y);
+        t.style.cssText = `--n:${(i * 0.1).toFixed(1)}s;${font}`;
+        t.textContent = ch;
+        svg.appendChild(t);
+      }
     });
     document.body.appendChild(svg);
-    await wait((chs.length - 1) * 80 + 1300);       // the stencil is drawn
-    nameEl.classList.add("set");                    // the ink is written into it, 110ms apart
-    await wait((chs.length - 1) * 110 + 850);
-    svg.classList.add("out");
-    await wait(500);
-    nameEl.classList.add("instant");
+    await wait((chs.length - 1) * 100 + 1900);      // the last hairline has lifted
+    nameEl.classList.add("instant", "set");         // the real letters take over, unseen
     svg.remove();
   }
 
