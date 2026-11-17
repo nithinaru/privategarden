@@ -50,7 +50,7 @@
     // a field that fits the screen is centred on it; a taller one (a phone) starts
     // near the top and is carried up as you scroll
     const tall = rows * cellH > H * 0.8;
-    const y0 = tall ? -H * 0.3 : -((rows - 1) / 2) * cellH;
+    const y0 = tall ? -H * 0.3 : -((rows - 1) / 2) * cellH + H * 0.04;   // a touch low, to sit nearer the footer
     amp = H * 0.15;
     cards.forEach((c, i) => {
       c.w = unit * c.size; c.h = c.w / c.ratio;

@@ -134,6 +134,7 @@ a { color: inherit; }
    soft, slanted edge, like a pen crossing it, one letter after the next. nothing moves. */
 .ch {
   position: relative; display: inline-block; opacity: 0;
+  padding: .12em .07em; margin: -.12em -.07em;   /* room for ink that overhangs the letter's box */
   -webkit-mask: linear-gradient(100deg, #000 44%, transparent 56%) 100% 0 / 300% 100% no-repeat;
           mask: linear-gradient(100deg, #000 44%, transparent 56%) 100% 0 / 300% 100% no-repeat;
 }
@@ -142,14 +143,14 @@ a { color: inherit; }
 .name.instant .ch { animation: none; -webkit-mask: none; mask: none; }
 /* on the page, each letter of the title changes to another typeface under the cursor */
 /* (only over the letter itself: the box of a letter hangs well below its baseline) */
-.ch .hit { position: absolute; left: 0; right: 0; top: 0; bottom: var(--drop, 24%); }
+.ch .hit { position: absolute; left: .07em; right: .07em; top: 0; bottom: var(--drop, 24%); }
 body.live .name .ch .hit { pointer-events: auto; cursor: default; }
 @media (hover: hover) and (pointer: fine) and (min-width: 701px) {
   .name.set .ch:hover .b { opacity: 0; }
   .name.set .ch:hover .a { opacity: 1; }
 }
 .ch .a {
-  position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: .12em; transform: translateX(-50%);
   opacity: 0; pointer-events: none; line-height: 1;
 }
 .sp { display: inline-block; width: .26em; }
@@ -299,7 +300,7 @@ body.live .under { position: relative; z-index: 31; }
 /* ---------- footer ---------- */
 .end {
   position: relative; display: flex; flex-direction: column; justify-content: flex-end;
-  padding: 9vh 3vw 0; overflow: hidden;
+  padding: 4vh 3vw 0; overflow: hidden;
 }
 /* the two words are almost the colour of the page. a hard light edge up and to the left
    and a hard dark edge down and to the right make them read as pressed out of the paper. */

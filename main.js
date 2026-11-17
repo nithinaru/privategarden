@@ -12,6 +12,10 @@
   // ---- name, one span per letter with an alt font for hover ----
   const ALTS = ["f-ital", "f-black", "f-script", "f-story", "f-bench", "f-pixel"];
 
+  // where a letter sits. (its box is padded so that ink which overhangs it, like the
+  // arms of the v, is not clipped while it is written in; this is the letter alone.)
+  const glyph = (c) => c.querySelector(".b").getBoundingClientRect();
+
   // size the name so it spans the screen with an even margin either side
   async function fitName() {
     try { await document.fonts.load('480 100px "Source Serif 4"', "Private Garden"); } catch (e) {}
@@ -20,7 +24,7 @@
     if (!chs.length) return;
     nameEl.style.fontSize = "";
     const rows = {};                                  // on a phone the two words sit on two lines
-    chs.forEach((c) => { const r = c.getBoundingClientRect(), k = Math.round(r.top), l = (rows[k] = rows[k] || [r.left, r.right]); l[0] = Math.min(l[0], r.left); l[1] = Math.max(l[1], r.right); });
+    chs.forEach((c) => { const r = glyph(c), k = Math.round(r.top), l = (rows[k] = rows[k] || [r.left, r.right]); l[0] = Math.min(l[0], r.left); l[1] = Math.max(l[1], r.right); });
     const w = Math.max(...Object.values(rows).map((l) => l[1] - l[0]));
     const fs = parseFloat(getComputedStyle(nameEl).fontSize);
     const size = (fs * (innerWidth * 0.94)) / w;
@@ -82,7 +86,7 @@
     svg.style.setProperty("--len", fs * 5);
     const chs = [...nameEl.querySelectorAll(".ch")];
     chs.forEach((c, i) => {
-      const r = c.getBoundingClientRect();
+      const r = glyph(c);
       const t = document.createElementNS(SVGNS, "text");
       t.setAttribute("x", r.left); t.setAttribute("y", baseOf(r));
       t.setAttribute("style", `--n:${(i * 0.08).toFixed(2)}s;font-family:${cs.fontFamily};font-size:${fs}px;font-weight:${cs.fontWeight}`);
@@ -136,7 +140,8 @@
   $("bio").innerHTML = (S.bio || []).map((l) => `<span>${l
     .replace(/\[(.+?)\]\((.+?)\)/g, '<a class="hl-me" href="$2" target="_blank" rel="noopener">$1</a>')
     .replace(/\*\*(.+?)\*\*/g, '<b class="hl-me">$1</b>')}</span>`).join("");
-  $("about").href = $("by").href = S.about;   // all go to the main site
+  $("about").href = S.about;
+  $("by").href = S.by || S.about;
 
   // the colour sweep (About and the bold names): the label is doubled, and the copy
   // on top carries a band of colour that crosses it from left to right on hover
@@ -374,7 +379,7 @@
     await fitName();
     const fs = parseFloat(getComputedStyle(nameEl).fontSize);
     const chs = [...nameEl.querySelectorAll(".ch")];
-    const first = chs[0].getBoundingClientRect(), lastR = chs[chs.length - 1].getBoundingClientRect();
+    const first = glyph(chs[0]), lastR = glyph(chs[chs.length - 1]);
     const W = innerWidth;
     const bases = [...new Set([...nameEl.querySelectorAll(".probe")].map((p) => Math.round(p.getBoundingClientRect().top)))];
     const base = bases[bases.length - 1];
@@ -413,7 +418,7 @@
       guidesEl.appendChild(t);
     });
     // a vertical at every letter's left edge, plus the ends
-    chs.forEach((c) => { const x = c.getBoundingClientRect().left; add(x, 0, x, innerHeight); });
+    chs.forEach((c) => { const x = glyph(c).left; add(x, 0, x, innerHeight); });
     add(lastR.right, 0, lastR.right, innerHeight);
     // ruler ticks under the baseline
     for (let x = first.left, i = 0; x < lastR.right; x += 8, i++) {

@@ -15,6 +15,8 @@ window.SITE = {
   ],
   // where the About button goes
   about: "https://nithinaruswamy.com",
+  // where the name in "A Collective by Nithin Aruswamy" goes
+  by: "https://cosmos.so/nithinaru",
 
   // bottom-right link
   x: "nithinaru",
@@ -39,24 +41,24 @@ window.SITE = {
   work: {
     // the two phrases either side of the stack
     words: ["What I", "keep returning to"],
-    // one entry per card.
+    // one entry per card. these are the same photos as the flicker, cut in colour.
     // each can have: src (image), title (caption under it; "" for none), href (link), ratio (default 16 / 9).
     items: [
-      { src: "assets/flicker/01.webp", title: "" },
-      { src: "assets/flicker/02.webp", title: "" },
-      { src: "assets/flicker/03.webp", title: "" },
-      { src: "assets/flicker/04.webp", title: "" },
-      { src: "assets/flicker/05.webp", title: "" },
-      { src: "assets/flicker/06.webp", title: "" },
-      { src: "assets/flicker/07.webp", title: "" },
-      { src: "assets/flicker/08.webp", title: "" },
-      { src: "assets/flicker/09.webp", title: "" },
-      { src: "assets/flicker/10.webp", title: "" },
-      { src: "assets/flicker/11.webp", title: "" },
-      { src: "assets/flicker/12.webp", title: "" },
-      { src: "assets/flicker/13.webp", title: "" },
-      { src: "assets/flicker/14.webp", title: "" },
-      { src: "assets/flicker/15.webp", title: "" },
+      { src: "assets/work/01.webp", title: "" },
+      { src: "assets/work/02.webp", title: "" },
+      { src: "assets/work/03.webp", title: "" },
+      { src: "assets/work/04.webp", title: "" },
+      { src: "assets/work/05.webp", title: "" },
+      { src: "assets/work/06.webp", title: "" },
+      { src: "assets/work/07.webp", title: "" },
+      { src: "assets/work/08.webp", title: "" },
+      { src: "assets/work/09.webp", title: "" },
+      { src: "assets/work/10.webp", title: "" },
+      { src: "assets/work/11.webp", title: "" },
+      { src: "assets/work/12.webp", title: "" },
+      { src: "assets/work/13.webp", title: "" },
+      { src: "assets/work/14.webp", title: "" },
+      { src: "assets/work/15.webp", title: "" },
     ],
   },
 };
