@@ -14,8 +14,8 @@
   <img src="assets/flicker/01.webp" width="19%" alt="">
   <img src="assets/flicker/05.webp" width="19%" alt="">
   <img src="assets/flicker/09.webp" width="19%" alt="">
-  <img src="assets/flicker/13.webp" width="19%" alt="">
-  <img src="assets/flicker/17.webp" width="19%" alt="">
+  <img src="assets/flicker/12.webp" width="19%" alt="">
+  <img src="assets/flicker/15.webp" width="19%" alt="">
 </p>
 
 <p align="center"><sub>WHAT I KEEP RETURNING TO</sub></p>

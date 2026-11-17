@@ -33,7 +33,7 @@ window.SITE = {
 
   // photos that flicker inside the card after the reel. ~12-16 is a good number.
   // run new photos through tools/flicker.py so they match.
-  flicker: Array.from({ length: 17 }, (_, i) => i + 1).map((n) => `assets/flicker/${String(n).padStart(2, "0")}.webp`),
+  flicker: Array.from({ length: 15 }, (_, i) => i + 1).map((n) => `assets/flicker/${String(n).padStart(2, "0")}.webp`),
 
   // the work section below the fountain.
   work: {
@@ -57,8 +57,6 @@ window.SITE = {
       { src: "assets/flicker/13.webp", title: "" },
       { src: "assets/flicker/14.webp", title: "" },
       { src: "assets/flicker/15.webp", title: "" },
-      { src: "assets/flicker/16.webp", title: "" },
-      { src: "assets/flicker/17.webp", title: "" },
     ],
   },
 };
