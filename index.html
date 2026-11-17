@@ -27,9 +27,14 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@300..800&family=IBM+Plex+Mono&family=Silkscreen&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Story+Script&family=Style+Script&family=Workbench&display=swap" rel="stylesheet">
-  <link href="https://api.fontshare.com/v2/css?f[]=erode@400,500,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1117121528">
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+  <!-- the faces the page is set in -->
+  <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@300..800&family=IBM+Plex+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&display=swap" rel="stylesheet">
+  <!-- the bio face and the four the title letters change to on hover: these load without holding the page up -->
+  <link href="https://api.fontshare.com/v2/css?f[]=erode@400,500,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Story+Script&family=Style+Script&family=Workbench&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://api.fontshare.com/v2/css?f[]=erode@400,500,600&display=swap" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="style.css?v=1117122556">
   <noscript><style>#intro { display: none; } body { overflow: auto !important; } .under, .garden, .foot { opacity: 1 !important; }</style></noscript>
 </head>
 <body class="intro-on">
@@ -40,7 +45,6 @@
   <section id="intro" aria-hidden="true">
     <div id="stage" class="stage">
       <video id="reel" playsinline preload="auto"></video>
-      <div id="placeholder" class="placeholder"></div>
       <div id="flicker" class="flicker"></div>
     </div>
     <svg id="fgrid" class="fgrid" preserveAspectRatio="none" aria-hidden="true"></svg>
@@ -70,7 +74,7 @@
       <a class="btn" id="about"><span class="hl-me">About</span><span aria-hidden="true">→</span></a>
     </div>
 
-    <a class="foot replay" href="?intro">
+    <a class="foot replay" href="./">
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8.6 8.4a.9.9 0 0 0-.9-.9 1.8 1.8 0 0 0-1.8 1.8 2.9 2.9 0 0 0 2.9 2.9 4.7 4.7 0 0 0 4.7-4.7A6.1 6.1 0 0 0 7.4 1.4 6.6 6.6 0 0 0 2 4.2M2 1.6v2.8h2.8"/></svg>
       Replay intro
     </a>
@@ -104,9 +108,9 @@
     </p>
   </footer>
 
-  <script src="config.js?v=1117121528"></script>
-  <script src="fountain.js?v=1117121528"></script>
-  <script src="main.js?v=1117121528"></script>
-  <script src="work.js?v=1117121528"></script>
+  <script src="config.js?v=1117122556"></script>
+  <script src="fountain.js?v=1117122556"></script>
+  <script src="main.js?v=1117122556"></script>
+  <script src="work.js?v=1117122556"></script>
 </body>
 </html>

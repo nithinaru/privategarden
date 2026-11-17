@@ -35,7 +35,7 @@ a { color: inherit; }
 #intro.gone { display: none; }
 
 .stage {
-  position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+  position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh;
   background: #000; overflow: hidden;
   transition: top .9s cubic-bezier(.7,0,.2,1), left .9s cubic-bezier(.7,0,.2,1),
               width .9s cubic-bezier(.7,0,.2,1), height .9s cubic-bezier(.7,0,.2,1),
@@ -45,23 +45,11 @@ a { color: inherit; }
   /* same 16:9 as the reel, so the shrink is a pure scale with no re-crop */
   --w: var(--card);
   width: var(--w); height: calc(var(--w) * 9 / 16);
-  top: calc(50vh - var(--w) * 9 / 32); left: calc(50vw - var(--w) / 2);
+  top: calc(50vh - var(--w) * 9 / 32); top: calc(50dvh - var(--w) * 9 / 32); left: calc(50vw - var(--w) / 2);
 }
 .stage.out { opacity: 0; }
 .stage video { width: 100%; height: 100%; object-fit: cover; display: none; }
 .stage video.on { display: block; }
-
-.placeholder {
-  position: absolute; inset: 0; display: none;
-  align-items: center; justify-content: center; flex-direction: column; gap: 1rem;
-  color: #fff; font-family: var(--mono); text-transform: uppercase; letter-spacing: .2em;
-}
-.placeholder.on { display: flex; }
-.placeholder .n { font-size: clamp(3rem, 12vw, 9rem); letter-spacing: 0; font-family: var(--serif); font-weight: 300; }
-.placeholder .t { font-size: .7rem; opacity: .5; }
-.placeholder.hit { background: #fff; color: #000; }
-.stage.card .placeholder .n { font-size: 2.4rem; }
-.stage.card .placeholder .t { display: none; }
 
 .flicker { position: absolute; inset: 0; display: none; }
 .flicker.on { display: block; }
@@ -88,24 +76,6 @@ a { color: inherit; }
 .stage { z-index: 2; }  /* the photo sits over the construction lines */
 .stage.card.out { opacity: 0; transform: scale(.97); transition: opacity .9s ease, transform .9s ease; }
 
-/* the name, inked: outline traced, then filled, then the outline fades */
-.ink { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 31; pointer-events: none; overflow: visible; }
-.ink text { stroke-linejoin: round; }
-.ink .o {                                   /* the pen line */
-  fill: none; stroke: var(--ink); stroke-width: 1.2px; stroke-opacity: .8;
-  stroke-dasharray: var(--len); stroke-dashoffset: var(--len);
-  animation: ink-draw .9s cubic-bezier(.42, 0, .58, 1) var(--n) forwards,
-             ink-line .35s linear calc(var(--n) + 1.15s) forwards;
-}
-.ink .f { fill: var(--ink); stroke: none; }  /* the ink, let in from the left */
-.ink clipPath rect {
-  transform-box: fill-box; transform-origin: 0 50%; transform: scaleX(0);
-  animation: ink-wipe .6s cubic-bezier(.5, 0, .3, 1) calc(var(--n) + .55s) forwards;
-}
-@keyframes ink-draw { to { stroke-dashoffset: 0; } }
-@keyframes ink-wipe { to { transform: scaleX(1); } }
-@keyframes ink-line { to { stroke-opacity: 0; } }
-
 .guides { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transition: opacity .6s; }
 .guides line { stroke: var(--rule); stroke-width: 1; transition: stroke-dashoffset 1.4s cubic-bezier(.65,0,.35,1); }
 .guides text { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; fill: var(--rule-text); opacity: 0; transition: opacity .4s; }
@@ -129,7 +99,7 @@ a { color: inherit; }
   opacity: 0; transition: opacity .35s, background-color .2s, color .2s;
 }
 .tag.on { opacity: 1; }
-.tag.rest { left: 50%; top: auto; bottom: 9vh; transform: translateX(-50%); }   /* touch screens */
+.tag.rest { left: 50%; top: auto; bottom: 13vh; transform: translateX(-50%); }   /* touch screens */
 .tag.off { background: #fff; color: var(--ink); box-shadow: 0 0 0 1px rgba(0, 0, 0, .3); }
 #intro { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
@@ -149,12 +119,12 @@ a { color: inherit; }
 /* during the intro it is a title card in the middle of the screen */
 .name.card { transform: translateY(calc(50svh - 50%)); }
 .name.still { transition: none; }
-.ch { position: relative; display: inline-block; opacity: 0; transform: translateY(-.12em); }
-.name.set .ch { opacity: 1; transform: none; transition: opacity .25s, transform .5s cubic-bezier(.2,.8,.2,1); transition-delay: calc(var(--i) * 45ms); }
+.ch { position: relative; display: inline-block; opacity: 0; transform: translateY(.16em); }
+.name.set .ch { opacity: 1; transform: none; transition: opacity .55s ease, transform .8s cubic-bezier(.16, .84, .24, 1); transition-delay: calc(var(--i) * 70ms); }
 .name.instant .ch { transition: none; }
 /* on the page, each letter of the title changes to another typeface under the cursor */
 body.live .name .ch { pointer-events: auto; cursor: default; }
-@media (hover: hover) and (pointer: fine) {
+@media (hover: hover) and (pointer: fine) and (min-width: 701px) {
   .name.set .ch:hover .b { opacity: 0; }
   .name.set .ch:hover .a { opacity: 1; }
 }
@@ -185,6 +155,8 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
   padding: 0 3vw; font-size: 14px; letter-spacing: .02em;
 }
 .under a { font-weight: 600; color: inherit; text-decoration: none; }
+/* the title's letter boxes reach down over this line, so it sits above them */
+body.live .under { position: relative; z-index: 31; }
 
 /* the fountain takes everything that is left */
 .garden { flex: 1 1 0; min-height: 0; position: relative; margin: .6rem 0 3.4rem; }
@@ -239,8 +211,8 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
   font-size: 12px; letter-spacing: .02em; color: #8a8a8a; text-decoration: none;
 }
 .foot svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; }
-.replay { left: 3vw; }
-.x { right: 3vw; }
+.x { left: 3vw; }
+.replay { right: 3vw; }
 
 /* the caption at the foot of the screen while the photos run */
 .cap {
@@ -283,28 +255,13 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
   background: var(--blank); opacity: 0; will-change: transform, opacity; text-decoration: none;
 }
 .work-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
-/* skeletons: a hairline edge and four close grays, so the stack reads as separate cards */
-.work-card.skel { outline: 1px solid #e3e3e0; outline-offset: -1px; }
-.work-card.skel:nth-child(4n + 1) { background: #ebebe8; }
-.work-card.skel:nth-child(4n + 2) { background: #f5f5f3; }
-.work-card.skel:nth-child(4n + 3) { background: #e6e6e3; }
-/* skeleton shimmer */
-.work-card.skel { overflow: visible; }
-.work-card.skel::before {
-  content: ""; position: absolute; inset: 0;
-  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .75) 50%, transparent 70%) 0 0 / 250% 100%;
-  animation: shimmer 1.8s linear infinite;
-}
-@keyframes shimmer { from { background-position: 150% 0; } to { background-position: -100% 0; } }
-/* caption under each card once it has landed: two skeleton bars, or the title */
+/* caption under a card once it has landed, if it has a title */
 .work-cap {
   position: absolute; left: 0; top: calc(100% + 8px); white-space: nowrap;
   font-family: var(--mono); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: #1f1f1f;
   opacity: 0; transition: opacity .4s;
 }
 .work-card.open .work-cap { opacity: 1; }
-.work-cap i { display: block; height: 6px; margin-bottom: 5px; background: var(--blank); width: 72px; }
-.work-cap i + i { width: 44px; }
 .work-word {
   position: absolute; top: 50%; left: 50%; margin: 0; white-space: nowrap; pointer-events: none; z-index: 400;
   font-family: var(--serif); font-weight: 400; font-size: clamp(30px, 5vw, 76px); line-height: 1; letter-spacing: -.02em;
@@ -352,8 +309,33 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
   .quote { position: static; width: auto; padding: 0 12vw; margin: 1.6rem 0 0; text-align: center; }
   .bio { position: static; padding: 0 8vw; margin: 2rem 0 0; text-align: center; }
   .bio p span { white-space: normal; }
-  .replay { left: 6vw; } .x { right: 6vw; }
+  .x { left: 6vw; } .replay { right: 6vw; }
   .end { padding: 7vh 6vw 0; }
     .end-big { margin: 0 -6vw; }
 }
 
+
+/* phones: the title is set large and tight on two lines with the first cut at the top,
+   then the three lines and the button, then the fountain, small and centred. no quote,
+   and the title letters do not change face. */
+@media (max-width: 700px) {
+  .name { white-space: normal; text-align: left; padding: 0 2.5vw; line-height: .76; transform: translateY(-.3em); }
+  .name .sp { display: block; width: 0; height: 0; }
+  body.live .name .ch { pointer-events: none; }
+  #site { padding-top: calc(var(--title, 28vw) * 1.36); padding-bottom: 5.5rem; }
+  .under { order: 1; justify-content: flex-start; padding: 0 7.5vw; font-size: 13px; }
+  .quote { display: none; }
+  .bio { order: 2; padding: 0 7.5vw; margin: 2rem 0 0; text-align: left; font-size: 19px; line-height: 1.85; }
+  .btn { margin-top: 1.6rem; padding: 7px 14px; font-size: 19px; }
+  .garden { order: 3; flex: 0 0 auto; width: 74vw; height: 66vw; margin: 2.6rem auto 0; }
+  .guides text { font-size: 7px; }
+  /* the two phrases sit above and below the stack (placed in work.js) */
+  .work-word { font-size: 34px; transform-origin: 50% 50%; }
+  .work-word:first-of-type { transform-origin: 50% 50%; }
+}
+
+/* an upright screen: the film keeps its own wide shape, as a band across the middle,
+   so nothing is cut off and the shrink to the card is a plain scale */
+@media (orientation: portrait) {
+  .stage:not(.card) { height: 56.25vw; top: calc(50vh - 28.125vw); top: calc(50dvh - 28.125vw); }
+}

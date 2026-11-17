@@ -24,42 +24,41 @@ window.SITE = {
 
 
   // the intro film. it opens with its sound on; a click switches it off and on.
-  // if this file is missing, a placeholder reel plays instead.
+  // on a narrow screen the smaller copy plays.
   video: "assets/intro.mp4",
+  videoSmall: "assets/intro-sm.mp4",
   // the second its picture ends (21s + 21 frames at 24fps). the page moves on to the photos
   // there, and the rest of the soundtrack keeps playing under them.
   cut: 21.875,
 
   // photos that flicker inside the card after the reel. ~12-16 is a good number.
-  // e.g. "assets/flicker/01.jpg". empty = generated placeholder frames.
   // run new photos through tools/flicker.py so they match.
-  flicker: Array.from({ length: 17 }, (_, i) => i + 1).map((n) => `assets/flicker/${String(n).padStart(2, "0")}.jpg`),
+  flicker: Array.from({ length: 17 }, (_, i) => i + 1).map((n) => `assets/flicker/${String(n).padStart(2, "0")}.webp`),
 
   // the work section below the fountain.
   work: {
     // the two phrases either side of the stack
     words: ["What I", "keep returning to"],
-    // one entry per card. an empty list shows 28 skeleton placeholders.
+    // one entry per card.
     // each can have: src (image), title (caption under it; "" for none), href (link), ratio (default 16 / 9).
-    // an entry with no src stays a skeleton, so you can reserve a slot: {}
     items: [
-      { src: "assets/flicker/01.jpg", title: "" },
-      { src: "assets/flicker/02.jpg", title: "" },
-      { src: "assets/flicker/03.jpg", title: "" },
-      { src: "assets/flicker/04.jpg", title: "" },
-      { src: "assets/flicker/05.jpg", title: "" },
-      { src: "assets/flicker/06.jpg", title: "" },
-      { src: "assets/flicker/07.jpg", title: "" },
-      { src: "assets/flicker/08.jpg", title: "" },
-      { src: "assets/flicker/09.jpg", title: "" },
-      { src: "assets/flicker/10.jpg", title: "" },
-      { src: "assets/flicker/11.jpg", title: "" },
-      { src: "assets/flicker/12.jpg", title: "" },
-      { src: "assets/flicker/13.jpg", title: "" },
-      { src: "assets/flicker/14.jpg", title: "" },
-      { src: "assets/flicker/15.jpg", title: "" },
-      { src: "assets/flicker/16.jpg", title: "" },
-      { src: "assets/flicker/17.jpg", title: "" },
+      { src: "assets/flicker/01.webp", title: "" },
+      { src: "assets/flicker/02.webp", title: "" },
+      { src: "assets/flicker/03.webp", title: "" },
+      { src: "assets/flicker/04.webp", title: "" },
+      { src: "assets/flicker/05.webp", title: "" },
+      { src: "assets/flicker/06.webp", title: "" },
+      { src: "assets/flicker/07.webp", title: "" },
+      { src: "assets/flicker/08.webp", title: "" },
+      { src: "assets/flicker/09.webp", title: "" },
+      { src: "assets/flicker/10.webp", title: "" },
+      { src: "assets/flicker/11.webp", title: "" },
+      { src: "assets/flicker/12.webp", title: "" },
+      { src: "assets/flicker/13.webp", title: "" },
+      { src: "assets/flicker/14.webp", title: "" },
+      { src: "assets/flicker/15.webp", title: "" },
+      { src: "assets/flicker/16.webp", title: "" },
+      { src: "assets/flicker/17.webp", title: "" },
     ],
   },
 };

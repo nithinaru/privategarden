@@ -18,7 +18,9 @@
     const chs = nameEl.querySelectorAll(".ch");
     if (!chs.length) return;
     nameEl.style.fontSize = "";
-    const w = chs[chs.length - 1].getBoundingClientRect().right - chs[0].getBoundingClientRect().left;
+    const rows = {};                                  // on a phone the two words sit on two lines
+    chs.forEach((c) => { const r = c.getBoundingClientRect(), k = Math.round(r.top), l = (rows[k] = rows[k] || [r.left, r.right]); l[0] = Math.min(l[0], r.left); l[1] = Math.max(l[1], r.right); });
+    const w = Math.max(...Object.values(rows).map((l) => l[1] - l[0]));
     const fs = parseFloat(getComputedStyle(nameEl).fontSize);
     const size = (fs * (innerWidth * 0.94)) / w;
     nameEl.style.fontSize = size + "px";
@@ -42,6 +44,7 @@
     b.style.top = y(150 + 48) - b.offsetHeight / 2 + "px";
   }
   addEventListener("resize", placeSides);
+  document.fonts.addEventListener("loadingdone", placeSides);   // the bio face arrives late
 
   // footer: split the two words into letters so they can rise one by one, size the
   // line to span the page, and start the rise when it scrolls into view
@@ -61,38 +64,14 @@
   addEventListener("resize", fitEnd);
   new IntersectionObserver(([e]) => { if (e.isIntersecting) endBig.classList.add("in"); }, { threshold: 0.35 }).observe(endBig);
 
-  // the name is written, not shown: for each letter a pen line traces the
-  // outline, then ink follows it across from left to right and the pen line
-  // lifts. letters start 0.13s apart, so the hand moves along the name.
-  // (svg text laid over the real name, swapped for the real one at the end.)
+  // the name arrives a letter at a time: each one rises a little and fades in,
+  // 70ms after the one before it.
   async function inkName() {
     await fitName();
-    const cs = getComputedStyle(nameEl), fs = parseFloat(cs.fontSize);
-    const base = nameEl.querySelector(".probe").getBoundingClientRect().top;
-    const svg = document.createElementNS(SVGNS, "svg");
-    svg.setAttribute("class", "ink");
-    svg.style.setProperty("--len", fs * 5);
-    const font = `font-family:${cs.fontFamily};font-size:${fs}px;font-weight:${cs.fontWeight}`;
-    const mk = (tag, attrs, parent) => {
-      const n = document.createElementNS(SVGNS, tag);
-      for (const k in attrs) n.setAttribute(k, attrs[k]);
-      parent.appendChild(n);
-      return n;
-    };
-    const chs = [...nameEl.querySelectorAll(".ch")];
-    chs.forEach((c, i) => {
-      const r = c.getBoundingClientRect(), ch = c.querySelector(".b").textContent;
-      const g = mk("g", { style: `--n:${(i * 0.13).toFixed(2)}s` }, svg);
-      const clip = mk("clipPath", { id: "ink" + i }, g);
-      mk("rect", { x: r.left - fs * 0.08, y: base - fs, width: r.width + fs * 0.16, height: fs * 1.45 }, clip);
-      const fill = mk("text", { x: r.left, y: base, class: "f", style: font, "clip-path": `url(#ink${i})` }, g);
-      const pen = mk("text", { x: r.left, y: base, class: "o", style: font }, g);
-      fill.textContent = pen.textContent = ch;
-    });
-    document.body.appendChild(svg);
-    await wait((chs.length - 1) * 130 + 1550);
-    nameEl.classList.add("instant", "set");
-    svg.remove();
+    const n = nameEl.querySelectorAll(".ch").length;
+    nameEl.classList.add("set");
+    await wait((n - 1) * 70 + 900);
+    nameEl.classList.add("instant");
   }
 
   function buildName() {
@@ -100,6 +79,7 @@
     let i = 0, last = -1;
     for (const c of txt) {
       if (c === " ") {
+        const pr = document.createElement("span"); pr.className = "probe"; nameEl.appendChild(pr);
         const sp = document.createElement("span");
         sp.className = "sp";
         nameEl.appendChild(sp);
@@ -162,6 +142,9 @@
   function showTag(x, y) {
     if (!filming) return;
     if (!touch) {
+      // near the skip button it gets out of the way
+      const k = $("skip").getBoundingClientRect();
+      if (x > k.left - 150 && y > k.top - 90) return hideTag();
       const tx = Math.max(8, Math.min(x + 16, innerWidth - tag.offsetWidth - 8)), ty = Math.max(8, Math.min(y + 20, innerHeight - tag.offsetHeight - 8));
       tag.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
     }
@@ -191,22 +174,54 @@
   intro.addEventListener("contextmenu", (e) => e.preventDefault());
 
   // ---- 1. the film ----
-  // "ok" = ready to play, "missing" = no such file, "slow" = still not ready after 10s
-  function videoState() {
+  // start the film and say how it went: "ok" = playing, "missing" = no such file,
+  // "slow" = still not playing after 10s, "blocked" = the browser will not start it unasked.
+  // (it is started straight away, not when it has loaded: a phone loads nothing until
+  // a film is told to play.)
+  function startFilm() {
     return new Promise((res) => {
-      reel.src = S.video;
-      const end = (v) => { reel.removeEventListener("canplay", ok); reel.removeEventListener("error", bad); clearTimeout(t); res(v); };
-      const ok = () => end("ok"), bad = () => end("missing");
-      reel.addEventListener("canplay", ok);
-      reel.addEventListener("error", bad);
+      let over = false;
+      const end = (v) => { if (over) return; over = true; clearTimeout(t); res(v); };
       const t = setTimeout(() => end("slow"), 10000);
+      reel.addEventListener("error", () => end("missing"), { once: true });
+      reel.addEventListener("playing", () => end("ok"), { once: true });
+      reel.setAttribute("webkit-playsinline", "");
+      reel.src = innerWidth < 800 && S.videoSmall ? S.videoSmall : S.video;
+      const gone = (e) => reel.error || (e && e.name === "NotSupportedError");
+      // with sound if the browser allows it, silent if not
+      setSound(true);
+      reel.play()
+        .catch((e) => { if (gone(e)) throw e; asked = true; setSound(false); reel.setAttribute("muted", ""); return reel.play(); })
+        .catch((e) => end(gone(e) ? "missing" : "blocked"));
+    });
+  }
+  // a phone saving power starts no film at all: ask for a tap, and wait a little for one
+  function askToPlay() {
+    return new Promise((res) => {
+      tagText.textContent = touch ? "Tap to play" : "Click to play";
+      tag.classList.add("off");
+      if (touch) tag.classList.add("on");
+      filming = true;                               // lets the tag follow a cursor
+      const t = setTimeout(() => { intro.removeEventListener("click", go, true); tagOff(); res(false); }, 7000);
+      function go(e) {
+        if (e.target.closest(".skip")) return;
+        e.stopPropagation();
+        clearTimeout(t); intro.removeEventListener("click", go, true);
+        asked = false; setSound(true);
+        reel.play().then(() => res(true), () => { tagOff(); res(false); });
+      }
+      intro.addEventListener("click", go, true);
     });
   }
 
   async function playReel() {
-    const state = await videoState();
+    reel.classList.add("on");
+    let state = await startFilm();
+    if (done) return;
+    if (state === "blocked") state = (await askToPlay()) ? "ok" : "slow";
     if (state === "ok") {
-      reel.classList.add("on");
+      filming = true;
+      if (touch && asked) tag.classList.add("on");
       reel.addEventListener("ended", tagOff);
       // the picture ends at S.cut; the page moves on there while the sound plays out
       const cut = S.cut || Infinity;
@@ -221,30 +236,12 @@
           if (now - since > 6000) { reel.pause(); tagOff(); return res(); }
           requestAnimationFrame(watch);
         };
-        // with sound if the browser allows it, silent if not, and on to the photos if neither
-        setSound(true);
-        reel.play().catch(() => { asked = true; setSound(false); return reel.play(); })
-          .then(() => { filming = true; if (touch && asked) tag.classList.add("on"); watch(); }).catch(res);
+        watch();
       });
       return;
     }
-    if (state === "slow") return;                 // a connection too slow for the film goes straight to the photos
-    // no video yet: an 8s stand-in that hits the same beats
-    const ph = $("placeholder");
-    ph.classList.add("on");
-    const n = document.createElement("div"); n.className = "n";
-    const t = document.createElement("div"); t.className = "t"; t.textContent = "drop assets/intro.mp4";
-    ph.append(n, t);
-    const start = performance.now();
-    while (!done) {
-      const s = (performance.now() - start) / 1000;
-      if (s > 8) break;
-      const beat = Math.floor(s / 0.5);
-      n.textContent = "clip " + String(Math.min(beat + 1, 16)).padStart(2, "0");
-      ph.classList.toggle("hit", s < 4.6 && beat % 4 === 3);
-      await wait(50);
-    }
-    ph.classList.remove("hit");
+    reel.classList.remove("on");
+    if (state === "slow") reel.pause();           // too slow, missing or not allowed: straight to the photos
   }
 
   // ---- 2. shrink to a card ----
@@ -255,43 +252,18 @@
   }
 
   // ---- 3. flicker inside the card ----
-  function fakeFrames(count) {
-    // stand-in frames: hard black/paper compositions
-    const out = [];
-    for (let i = 0; i < count; i++) {
-      const d = document.createElement("div");
-      const r = (a, b) => a + Math.random() * (b - a);
-      const ink = "#111", paper = "#fff";
-      const flip = i % 2 === 0;
-      const bg = flip ? ink : paper, fg = flip ? paper : ink;
-      const kind = i % 4;
-      if (kind === 0) d.style.background = `radial-gradient(circle at ${r(20, 80)}% ${r(20, 80)}%, ${fg} ${r(10, 25)}%, ${bg} ${r(26, 40)}%)`;
-      if (kind === 1) d.style.background = `repeating-linear-gradient(${r(0, 180)}deg, ${fg} 0 ${r(2, 6)}px, ${bg} 0 ${r(10, 24)}px)`;
-      if (kind === 2) d.style.background = `linear-gradient(${bg} ${r(30, 60)}%, ${fg} 0)`;
-      if (kind === 3) d.style.background = `conic-gradient(from ${r(0, 360)}deg, ${fg} 0 25%, ${bg} 0 50%, ${fg} 0 75%, ${bg} 0)`;
-      out.push(d);
-    }
-    return out;
-  }
-
   // the photos start loading with the film, so they are ready when it ends
   let shots = null;
   const loadShots = () => (shots = shots || (S.flicker || []).map((src) => { const im = new Image(); im.src = src; im.alt = ""; return im; }));
 
   async function flicker() {
     const box = $("flicker");
-    let frames;
-    if ((S.flicker || []).length) {
-      frames = loadShots();
-      // wait for them, but not for ever: after 6s run with the ones that have arrived
-      await Promise.race([Promise.all(frames.map((im) => im.decode().catch(() => {}))), wait(6000)]);
-      const ok = frames.filter((im) => im.complete && im.naturalWidth > 0); // never flash a photo that failed to load
-      frames = ok.length ? ok : fakeFrames(16);
-    } else {
-      frames = fakeFrames(16);
-    }
+    // wait for the photos, but not for ever: after 6s run with the ones that have arrived
+    let frames = loadShots();
+    await Promise.race([Promise.all(frames.map((im) => im.decode().catch(() => {}))), wait(6000)]);
+    frames = frames.filter((im) => im.complete && im.naturalWidth > 0);   // never flash one that failed to load
+    if (!frames.length) { stage.classList.add("out"); return; }
     reel.classList.remove("on");
-    $("placeholder").classList.remove("on");
     box.classList.add("on");
     const counter = $("count");
     const r = stage.getBoundingClientRect();
@@ -361,18 +333,25 @@
     intro.classList.add("clear");
     await fitName();
     const fs = parseFloat(getComputedStyle(nameEl).fontSize);
-    const base = nameEl.querySelector(".probe").getBoundingClientRect().top;
     const chs = [...nameEl.querySelectorAll(".ch")];
     const first = chs[0].getBoundingClientRect(), lastR = chs[chs.length - 1].getBoundingClientRect();
     const W = innerWidth;
+    const bases = [...new Set([...nameEl.querySelectorAll(".probe")].map((p) => Math.round(p.getBoundingClientRect().top)))];
+    const base = bases[bases.length - 1];
 
-    const rows = [
-      ["ascender", base - fs * 0.74],
-      ["cap height", base - fs * 0.66],
-      ["x-height", base - fs * 0.46],
-      ["baseline", base],
-      ["descender", base + fs * 0.22],
-    ];
+    // [label, y, draw the line, show the label]. on two lines the rows that would run
+    // into the other line are left out, and so are the labels that would sit on a letter
+    const two = bases.length > 1;
+    const rows = bases.flatMap((b, li) => {
+      const top = !two || li === 0, foot = !two || li === bases.length - 1;
+      return [
+        ["ascender", b - fs * 0.74, top, top],
+        ["cap height", b - fs * 0.66, top, top],
+        ["x-height", b - fs * 0.46, true, true],
+        ["baseline", b, true, !two],
+        ["descender", b + fs * 0.22, foot, foot],
+      ].filter((r) => r[2]);
+    });
     const lines = [];
     const add = (x1, y1, x2, y2) => {
       const l = document.createElementNS(SVGNS, "line");
@@ -385,8 +364,9 @@
       return l;
     };
 
-    rows.forEach(([label, y]) => {
+    rows.forEach(([label, y, , show]) => {
       add(0, y, W, y);
+      if (!show) return;
       const t = document.createElementNS(SVGNS, "text");
       t.setAttribute("x", W - 12); t.setAttribute("y", y - 5); t.setAttribute("text-anchor", "end");
       t.textContent = label.toUpperCase();
@@ -449,7 +429,20 @@
   fitName();
   let seen = null;
   try { seen = localStorage.getItem("pg-seen"); } catch (e) {}
-  const force = new URLSearchParams(location.search).has("intro");
+  // "replay intro" leaves a note for the next load, so the address stays clean. an old
+  // ?intro link still works, and is tidied out of the address bar.
+  let force = false;
+  try { force = sessionStorage.getItem("pg-replay") === "1"; sessionStorage.removeItem("pg-replay"); } catch (e) {}
+  if (new URLSearchParams(location.search).has("intro")) {
+    force = true;
+    try { history.replaceState(null, "", location.pathname); } catch (e) {}
+  }
+  document.querySelector(".replay").addEventListener("click", (e) => {
+    e.preventDefault();
+    try { sessionStorage.setItem("pg-replay", "1"); } catch (err) { location.href = "?intro"; return; }
+    scrollTo(0, 0);
+    location.reload();
+  });
   const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   $("skip").onclick = () => finish(true);

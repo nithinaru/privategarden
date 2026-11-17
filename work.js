@@ -4,7 +4,7 @@
 //   0.22-0.36  the phrases fade
 //   0.30-0.52  the stack bursts into a scattered field, cards at full size
 //   0.45-1.00  the field drifts up and away
-// cards are skeleton loaders until an item in config.js has a `src`.
+// the cards are the items in config.js.
 (() => {
   const S = window.SITE.work || {};
   const sec = document.getElementById("work");
@@ -14,25 +14,22 @@
   wordL.textContent = (S.words || [])[0] || "Things made";
   wordR.textContent = (S.words || [])[1] || "with care";
 
-  const items = S.items && S.items.length ? S.items : Array.from({ length: 28 }, () => ({}));
+  const items = (S.items || []).filter((it) => it.src);
+  if (!items.length) { sec.remove(); return; }
   const N = items.length, MID = (N - 1) / 2;
 
   // seeded random, so the layout is the same on every visit
   let seed = 7;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
-  const RATIOS = [16 / 9, 16 / 9, 4 / 3, 3 / 2, 1, 3 / 4];
 
   const cards = items.map((it, i) => {
     const a = document.createElement(it.href ? "a" : "div");
-    a.className = "work-card" + (it.src ? "" : " skel");
+    a.className = "work-card";
     if (it.href) { a.href = it.href; a.target = "_blank"; a.rel = "noopener"; }
-    if (it.src) { const im = new Image(); im.src = it.src; im.alt = it.title || ""; im.loading = "lazy"; a.appendChild(im); }
-    const cap = document.createElement("span");
-    cap.className = "work-cap";
-    if (it.title) cap.textContent = it.title; else if (!it.src) cap.innerHTML = "<i></i><i></i>";
-    a.appendChild(cap);
+    const im = new Image(); im.src = it.src; im.alt = it.title || ""; im.loading = "lazy"; a.appendChild(im);
+    if (it.title) { const cap = document.createElement("span"); cap.className = "work-cap"; cap.textContent = it.title; a.appendChild(cap); }
     space.appendChild(a);
-    const ratio = it.ratio || (it.src ? 16 / 9 : RATIOS[Math.floor(rnd() * RATIOS.length)]);
+    const ratio = it.ratio || 16 / 9;
     return { el: a, ratio, size: 0.55 + rnd() * 0.45, fx: rnd(), fy: rnd(), jit: rnd(), d: Math.abs(i - MID) };
   });
   // nearest the middle shows first and sits on top
@@ -67,7 +64,7 @@
     // the two phrases are different lengths, so the group is nudged sideways until
     // phrase + stack + phrase sits in the middle of the screen as one line
     const k = Math.min(1, W / 1100);
-    nudge = ((wordL.offsetWidth - wordR.offsetWidth) / 2) * k;
+    nudge = W < 700 ? 0 : ((wordL.offsetWidth - wordR.offsetWidth) / 2) * k;
   }
   let drift = 0, nudge = 0, intro = 1;
 
@@ -83,8 +80,15 @@
     const gap = 14 + grown * (stackW * 0.5 + N * stackW * 0.04 + 22);
     const wordA = 1 - span(p, 0.22, 0.36);
     const k = Math.min(1, W / 1100);
-    wordL.style.transform = `translate(calc(-100% - ${gap - nudge}px), -50%) scale(${k})`;
-    wordR.style.transform = `translate(${gap + nudge}px, -50%) scale(${k})`;
+    if (W < 700) {
+      // a phone has no room either side: one phrase above the stack, one below
+      const lift = 30 + grown * (stackW * 0.3 + N * stackW * 0.045 + 26);
+      wordL.style.transform = `translate(-50%, calc(-50% - ${lift}px))`;
+      wordR.style.transform = `translate(-50%, calc(-50% + ${lift}px))`;
+    } else {
+      wordL.style.transform = `translate(calc(-100% - ${gap - nudge}px), -50%) scale(${k})`;
+      wordR.style.transform = `translate(${gap + nudge}px, -50%) scale(${k})`;
+    }
     wordL.style.opacity = wordR.style.opacity = wordA;
     const up = ease(clamp((s - intro * 0.86) / (intro * 0.14 + drift * 1.15))) * drift;
 
