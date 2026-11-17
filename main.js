@@ -141,54 +141,52 @@
     el.innerHTML = `<span>${text}</span><span class="hl-grad" aria-hidden="true">${text}</span>`;
   });
 
-  // ---- hold for audio ----
-  // the film starts silent (a browser will not play sound unasked). a tag rides beside
-  // the cursor; holding the mouse or a finger down fills it, and when it is full the
-  // sound comes on and stays on.
-  const tag = $("tag"), HOLD = 650;
-  let holdT = 0, audio = false, retry = false;
-  const tagOn = () => { if (!audio) tag.classList.add("on"); };
-  const tagOff = () => { clearTimeout(holdT); tag.classList.remove("on", "hold"); };
-  function unmute() {
-    reel.muted = false; reel.volume = 0;
-    const up = () => { reel.volume = Math.min(1, reel.volume + 0.08); if (reel.volume < 1 && !reel.muted) setTimeout(up, 30); };
-    up();
-    // some browsers stop a film that is unmuted outside a tap. carry on silent and
-    // try again the moment the hold is released, which does count as a tap.
-    setTimeout(() => { if (reel.paused && !reel.ended && !done) { reel.muted = true; retry = true; reel.play().catch(() => {}); } }, 80);
+  // ---- audio on / audio off ----
+  // the film opens with its sound on. a tag rides beside the cursor and says which way
+  // the sound is set; a click anywhere on the film switches it. the tag is only there
+  // while the cursor is moving, and goes when it rests or leaves. (a browser that will
+  // not start sound unasked starts the film silent, with the tag reading "audio off".)
+  const tag = $("tag"), tagText = tag.querySelector("span"), REST = 1800;
+  let sound = true, filming = false, idleT = 0;
+  function setSound(on) {
+    sound = on;
+    reel.muted = !on;
+    if (on) reel.volume = 1;
+    tagText.textContent = on ? "Audio on" : "Audio off";
+    tag.classList.toggle("off", !on);
   }
-  function audioOn() {
-    if (audio) return;
-    audio = true;
-    tag.classList.add("done");
-    tag.querySelector("span").textContent = "Audio on";
-    setTimeout(() => tag.classList.remove("on"), 1500);
-    unmute();
+  function showTag(x, y) {
+    if (!filming) return;
+    const tx = Math.max(8, Math.min(x + 16, innerWidth - tag.offsetWidth - 8)), ty = Math.max(8, Math.min(y + 20, innerHeight - tag.offsetHeight - 8));
+    tag.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+    tag.classList.add("on");
+    clearTimeout(idleT);
+    idleT = setTimeout(() => tag.classList.remove("on"), REST);
   }
-  intro.addEventListener("pointerdown", (e) => {
-    if (audio || !tag.classList.contains("on") || e.target.closest(".skip")) return;
-    tag.classList.add("hold");
-    holdT = setTimeout(audioOn, HOLD);
+  const hideTag = () => { clearTimeout(idleT); tag.classList.remove("on"); };
+  const tagOff = () => { filming = false; hideTag(); };
+  function toggleSound() {
+    if (!filming) return;
+    setSound(!sound);
+    if (reel.paused && !reel.ended) reel.play().catch(() => {});
+  }
+  addEventListener("pointermove", (e) => { if (e.pointerType === "mouse") showTag(e.clientX, e.clientY); });
+  document.documentElement.addEventListener("pointerleave", hideTag);
+  addEventListener("blur", hideTag);
+  intro.addEventListener("click", (e) => {
+    if (!filming || e.target.closest(".skip")) return;
+    toggleSound();
+    showTag(e.clientX, e.clientY);          // on a touch screen it shows for a moment where the finger was
   });
-  addEventListener("pointerup", () => {
-    clearTimeout(holdT); tag.classList.remove("hold");
-    if (retry) { retry = false; reel.muted = false; reel.volume = 1; reel.play().catch(() => {}); }
-  });
-  addEventListener("pointercancel", () => { clearTimeout(holdT); tag.classList.remove("hold"); });
-  addEventListener("pointermove", (e) => {
-    if (e.pointerType !== "mouse" || done) return;
-    const x = Math.min(e.clientX + 16, innerWidth - tag.offsetWidth - 8), y = Math.min(e.clientY + 20, innerHeight - tag.offsetHeight - 8);
-    tag.classList.add("follow");
-    tag.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-  });
-  addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && tag.classList.contains("on")) audioOn(); });
+  addEventListener("keydown", (e) => { if (e.key === "m" || e.key === "M") toggleSound(); });
+  // a browser may pause the film while the tab is in the background
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && !done && filming && reel.paused && !reel.ended) reel.play().catch(() => {}); });
   intro.addEventListener("contextmenu", (e) => e.preventDefault());
 
   // ---- 1. the film ----
   // "ok" = ready to play, "missing" = no such file, "slow" = still not ready after 10s
   function videoState() {
     return new Promise((res) => {
-      reel.muted = true;
       reel.src = S.video;
       const end = (v) => { reel.removeEventListener("canplay", ok); reel.removeEventListener("error", bad); clearTimeout(t); res(v); };
       const ok = () => end("ok"), bad = () => end("missing");
@@ -206,8 +204,19 @@
       // the picture ends at S.cut; the page moves on there while the sound plays out
       const cut = S.cut || Infinity;
       await new Promise((res) => {
-        const watch = () => { if (done || reel.ended || reel.currentTime >= cut) return res(); requestAnimationFrame(watch); };
-        reel.play().then(() => { tagOn(); watch(); }).catch(res);
+        // if the film stops arriving part way through, give it 6s and then move on
+        let at = -1, since = performance.now(), prev = since;
+        const watch = () => {
+          if (done || reel.ended || reel.error || reel.currentTime >= cut) return res();
+          const now = performance.now();
+          if (reel.currentTime !== at || now - prev > 1000) { at = reel.currentTime; since = now; }
+          prev = now;
+          if (now - since > 6000) { reel.pause(); tagOff(); return res(); }
+          requestAnimationFrame(watch);
+        };
+        // with sound if the browser allows it, silent if not, and on to the photos if neither
+        setSound(true);
+        reel.play().catch(() => { setSound(false); return reel.play(); }).then(() => { filming = true; watch(); }).catch(res);
       });
       return;
     }
@@ -257,13 +266,18 @@
     return out;
   }
 
+  // the photos start loading with the film, so they are ready when it ends
+  let shots = null;
+  const loadShots = () => (shots = shots || (S.flicker || []).map((src) => { const im = new Image(); im.src = src; im.alt = ""; return im; }));
+
   async function flicker() {
     const box = $("flicker");
     let frames;
-    if (S.flicker.length) {
-      frames = S.flicker.map((src) => { const im = new Image(); im.src = src; im.alt = ""; return im; });
-      await Promise.all(frames.map((im) => im.decode().catch(() => {})));
-      const ok = frames.filter((im) => im.naturalWidth > 0); // never flash a photo that failed to load
+    if ((S.flicker || []).length) {
+      frames = loadShots();
+      // wait for them, but not for ever: after 6s run with the ones that have arrived
+      await Promise.race([Promise.all(frames.map((im) => im.decode().catch(() => {}))), wait(6000)]);
+      const ok = frames.filter((im) => im.complete && im.naturalWidth > 0); // never flash a photo that failed to load
       frames = ok.length ? ok : fakeFrames(16);
     } else {
       frames = fakeFrames(16);
@@ -411,6 +425,10 @@
   }
 
   async function run() {
+    // a reload part way down the page must not leave the intro playing off screen
+    try { history.scrollRestoration = "manual"; } catch (e) {}
+    scrollTo(0, 0);
+    loadShots();
     await playReel(); if (done) return;
     await toCard(); if (done) return;
     await flicker(); if (done) return;

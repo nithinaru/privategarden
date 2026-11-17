@@ -10,7 +10,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@300..800&family=IBM+Plex+Mono&family=Silkscreen&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Story+Script&family=Style+Script&family=Workbench&display=swap" rel="stylesheet">
   <link href="https://api.fontshare.com/v2/css?f[]=erode@400,500,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1117091606">
+  <link rel="stylesheet" href="style.css?v=1117120123">
+  <noscript><style>#intro { display: none; } body { overflow: auto !important; } .under, .garden, .foot { opacity: 1 !important; }</style></noscript>
 </head>
 <body class="intro-on">
   <div class="grain" aria-hidden="true"></div>
@@ -28,13 +29,13 @@
     <p id="cap" class="cap"></p>
     <svg id="guides" class="guides"></svg>
     <button id="skip" class="skip">skip</button>
-    <!-- follows the cursor while the film plays; holding down turns the sound on -->
-    <div id="tag" class="tag" aria-hidden="true"><i></i><span>Hold for audio</span></div>
+    <!-- follows the cursor while the film plays; a click switches the sound -->
+    <div id="tag" class="tag" aria-hidden="true"><span>Audio on</span></div>
   </section>
 
   <main id="site">
     <!-- written large in the middle at the end of the intro, then it moves up and sits half cut at the top -->
-    <h1 id="name" class="name card" aria-label="Private Garden"></h1>
+    <h1 id="name" class="name card" aria-label="Private Garden"><noscript>Private Garden</noscript></h1>
 
     <p class="under"><span class="by">A Collective by <a id="by" class="hl-me" target="_blank" rel="noopener">Nithin Aruswamy</a></span></p>
 
@@ -42,7 +43,7 @@
       <svg id="fountain" viewBox="12 50 376 334" preserveAspectRatio="xMidYMax meet" role="img" aria-label="A fountain, drawn by hand. Put your cursor in the water."></svg>
     </div>
 
-    <blockquote class="quote"><p id="quote"></p><cite id="quote-by"></cite></blockquote>
+    <blockquote class="quote"><p id="quote" class="hl-me"></p><cite id="quote-by"></cite></blockquote>
 
     <!-- three short lines and a way out, on the right -->
     <div class="bio">
@@ -84,9 +85,9 @@
     </p>
   </footer>
 
-  <script src="config.js?v=1117091606"></script>
-  <script src="fountain.js?v=1117091606"></script>
-  <script src="main.js?v=1117091606"></script>
-  <script src="work.js?v=1117091606"></script>
+  <script src="config.js?v=1117120123"></script>
+  <script src="fountain.js?v=1117120123"></script>
+  <script src="main.js?v=1117120123"></script>
+  <script src="work.js?v=1117120123"></script>
 </body>
 </html>

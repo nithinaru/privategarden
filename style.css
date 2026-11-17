@@ -119,22 +119,18 @@ a { color: inherit; }
 }
 #intro.paper .skip { color: var(--ink); }
 
-/* the tag that rides beside the cursor while the film plays. holding down fills it
-   from left to right; when it is full the sound comes on. before the mouse has moved,
-   and on touch screens, it rests at the foot of the screen. */
+/* the tag that rides beside the cursor while the film plays and says whether the
+   sound is on. it is placed by main.js, and only shows while the cursor is moving. */
 .tag {
-  position: fixed; left: 50%; bottom: 9vh; z-index: 7; pointer-events: none; overflow: hidden;
-  transform: translateX(-50%); padding: .55em .85em .5em;
+  position: fixed; left: 0; top: 0; z-index: 7; pointer-events: none;
+  padding: .55em .85em .5em;
   background: var(--ink); color: #fff; box-shadow: 0 0 0 1px rgba(255, 255, 255, .3);
   font-family: var(--mono); font-size: .64rem; letter-spacing: .2em; text-transform: uppercase; white-space: nowrap;
-  opacity: 0; transition: opacity .35s;
+  opacity: 0; transition: opacity .35s, background-color .2s, color .2s;
 }
 .tag.on { opacity: 1; }
-.tag.follow { left: 0; top: 0; bottom: auto; }
-.tag i { position: absolute; inset: 0; background: #fff; mix-blend-mode: difference; transform: scaleX(0); transform-origin: left; transition: transform .25s ease-out; }
-.tag.hold i { transform: scaleX(1); transition: transform .65s linear; }
-.tag.done i { transform: scaleX(1); transition: none; }
-#intro { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.tag.off { background: #fff; color: var(--ink); box-shadow: 0 0 0 1px rgba(0, 0, 0, .3); }
+#intro { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
 /* ---------- name ---------- */
 /* Source Serif 4 at its display optical size, like bharadwhat, a touch heavier and looser.
@@ -155,6 +151,12 @@ a { color: inherit; }
 .ch { position: relative; display: inline-block; opacity: 0; transform: translateY(-.12em); }
 .name.set .ch { opacity: 1; transform: none; transition: opacity .25s, transform .5s cubic-bezier(.2,.8,.2,1); transition-delay: calc(var(--i) * 45ms); }
 .name.instant .ch { transition: none; }
+/* on the page, each letter of the title changes to another typeface under the cursor */
+body.live .name .ch { pointer-events: auto; cursor: default; }
+@media (hover: hover) and (pointer: fine) {
+  .name.set .ch:hover .b { opacity: 0; }
+  .name.set .ch:hover .a { opacity: 1; }
+}
 .ch .a {
   position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
   opacity: 0; pointer-events: none; line-height: 1;
@@ -193,6 +195,7 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
   font-family: var(--serif); font-size: clamp(17px, 1.45vw, 22px); line-height: 1.3; letter-spacing: -.005em;
 }
 .quote p { font-style: italic; }
+.quote .hl { display: block; white-space: normal; cursor: default; }   /* the sweep, over a block that wraps */
 .quote cite {
   display: block; margin-top: .9rem; font-style: normal;
   font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #8a8a8a;
@@ -224,10 +227,10 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
   -webkit-background-clip: text; background-clip: text;
 }
 @media (hover: hover) and (pointer: fine) {
-  a:hover .hl-grad, .hl:hover .hl-grad { opacity: .94; animation: sweep .85s cubic-bezier(.4, 0, .2, 1) both; }
+  a:hover .hl-grad, .hl:hover .hl-grad, .quote:hover .hl-grad { opacity: .94; animation: sweep .85s cubic-bezier(.4, 0, .2, 1) both; }
 }
 @keyframes sweep { from { background-position: 100% 0; } to { background-position: 0 0; } }
-@media (prefers-reduced-motion: reduce) { a:hover .hl-grad, .hl:hover .hl-grad { animation: none; } }
+@media (prefers-reduced-motion: reduce) { a:hover .hl-grad, .hl:hover .hl-grad, .quote:hover .hl-grad { animation: none; } }
 
 /* foot links: hairline icons drawn like the rest of the page */
 .foot {

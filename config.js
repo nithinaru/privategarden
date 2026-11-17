@@ -23,7 +23,7 @@ window.SITE = {
   caption: ["A collective by Nithin Aruswamy · Est. 2026"],
 
 
-  // the intro film. it starts silent; holding the mouse or a finger down turns its sound on.
+  // the intro film. it opens with its sound on; a click switches it off and on.
   // if this file is missing, a placeholder reel plays instead.
   video: "assets/intro.mp4",
   // the second its picture ends (21s + 21 frames at 24fps). the page moves on to the photos
