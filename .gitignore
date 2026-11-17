@@ -3,3 +3,4 @@
 *.prproj
 raw/
 .playwright-mcp/
+.vercel
