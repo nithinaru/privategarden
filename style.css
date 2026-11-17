@@ -142,7 +142,6 @@ a { color: inherit; }
   font-family: var(--mono); font-size: .7rem; letter-spacing: .2em; text-transform: uppercase;
   color: #fff; opacity: .45; transition: opacity .2s;
 }
-.skip:hover { opacity: 1; }
 #intro.paper .skip { color: var(--ink); }
 
 /* ---------- name ---------- */
@@ -161,7 +160,6 @@ a { color: inherit; }
 /* during the intro it is a title card in the middle of the screen */
 .name.card { transform: translateY(calc(50svh - 50%)); }
 .name.still { transition: none; }
-body.live .name { pointer-events: auto; }
 .ch { position: relative; display: inline-block; opacity: 0; transform: translateY(-.12em); }
 .name.set .ch { opacity: 1; transform: none; transition: opacity .25s, transform .5s cubic-bezier(.2,.8,.2,1); transition-delay: calc(var(--i) * 45ms); }
 .name.instant .ch { transition: none; }
@@ -169,8 +167,6 @@ body.live .name { pointer-events: auto; }
   position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
   opacity: 0; pointer-events: none; line-height: 1;
 }
-.name.set .ch:hover .b { opacity: 0; }
-.name.set .ch:hover .a { opacity: 1; }
 .sp { display: inline-block; width: .26em; }
 .probe { display: inline-block; width: 0; height: 0; }
 
@@ -219,19 +215,11 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
 .btn {
   display: inline-flex; align-items: center; gap: .3em; margin-top: .9rem; padding: 2px 10px;
   background: #f0f0f0; color: var(--ink); font-weight: 500; text-decoration: none;
-  transition: background-color .22s, transform .16s;
 }
-.btn:hover { background: #e7e7e7; }
-.btn:active { background: #dedede; transform: scale(.97); }
-/* one arrow leaves to the right as another arrives from the left */
-.btn-icon { position: relative; display: inline-block; width: 1em; height: 1.2em; overflow: hidden; }
-.btn-icon i { position: absolute; inset: 0; font-style: normal; line-height: 1.2; transition: transform .32s cubic-bezier(.22, 1, .36, 1), opacity .32s; }
-.btn-icon i + i { opacity: 0; transform: translateX(-110%); }
-.btn:hover .btn-icon i:first-child { opacity: 0; transform: translateX(110%); }
-.btn:hover .btn-icon i + i { opacity: 1; transform: none; }
 
-/* the colour sweep on links: a band of colour crosses the word, left to right */
-.hl { position: relative; display: inline-block; white-space: nowrap; vertical-align: top; transition: transform .18s cubic-bezier(.22, 1, .36, 1); }
+/* the one hover effect on the page: on About and the bold names, a band of colour
+   crosses the word from left to right. nothing grows or moves. */
+.hl { position: relative; display: inline-block; white-space: nowrap; vertical-align: top; }
 .hl-grad {
   position: absolute; inset: 0; opacity: 0; pointer-events: none; user-select: none;
   color: transparent; -webkit-text-fill-color: transparent;
@@ -243,22 +231,18 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
   -webkit-background-clip: text; background-clip: text;
 }
 @media (hover: hover) and (pointer: fine) {
-  a:hover .hl, .hl:hover { transform: scale(1.03); }
   a:hover .hl-grad, .hl:hover .hl-grad { opacity: .94; animation: sweep .85s cubic-bezier(.4, 0, .2, 1) both; }
 }
 @keyframes sweep { from { background-position: 100% 0; } to { background-position: 0 0; } }
-@media (prefers-reduced-motion: reduce) { .hl { transition: none; } a:hover .hl-grad, .hl:hover .hl-grad { animation: none; } }
+@media (prefers-reduced-motion: reduce) { a:hover .hl-grad, .hl:hover .hl-grad { animation: none; } }
 
 /* foot links: hairline icons drawn like the rest of the page */
 .foot {
   position: absolute; bottom: 1.2rem; display: inline-flex; align-items: center; gap: .55em;
-  font-size: 12px; letter-spacing: .02em; color: #8a8a8a; text-decoration: none; transition: color .2s, opacity 1.1s ease .35s;
+  font-size: 12px; letter-spacing: .02em; color: #8a8a8a; text-decoration: none;
 }
 .foot svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; }
-.foot:hover { color: var(--ink); }
 .replay { left: 3vw; }
-.replay svg { transition: transform .6s cubic-bezier(.6, 0, .2, 1); }
-.replay:hover svg { transform: rotate(-360deg); }
 .x { right: 3vw; }
 
 /* the caption at the foot of the screen while the photos run */
@@ -300,10 +284,8 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
 .work-card {
   position: absolute; top: 0; left: 0; translate: -50% -50%; display: block;
   background: var(--blank); opacity: 0; will-change: transform, opacity; text-decoration: none;
-  transition: box-shadow .22s;
 }
 .work-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
-a.work-card.open:hover { box-shadow: 0 24px 48px -28px rgba(0, 0, 0, .45); z-index: 900 !important; }
 /* skeletons: a hairline edge and four close grays, so the stack reads as separate cards */
 .work-card.skel { outline: 1px solid #e3e3e0; outline-offset: -1px; }
 .work-card.skel:nth-child(4n + 1) { background: #ebebe8; }
