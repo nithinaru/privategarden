@@ -20,7 +20,7 @@
     nameEl.style.fontSize = "";
     const w = chs[chs.length - 1].getBoundingClientRect().right - chs[0].getBoundingClientRect().left;
     const fs = parseFloat(getComputedStyle(nameEl).fontSize);
-    nameEl.style.fontSize = (fs * (innerWidth * 0.94)) / w + "px";
+    nameEl.style.fontSize = (fs * (innerWidth * 0.84)) / w + "px";
   }
   addEventListener("resize", () => fitName());
 
@@ -311,12 +311,14 @@
 
     // ink the type onto the lines
     await inkName();
+    await wait(700);                              // let the finished name sit a moment
     guidesEl.classList.add("out");
     await wait(500);
   }
 
   // ---- 5. land on the page ----
-  function finish(instant, ink) {
+  // the big name is a title card for the intro only: it lifts away as the page arrives
+  function finish(instant) {
     if (done && instant) return;
     done = true;
     try { localStorage.setItem("pg-seen", "1"); } catch (e) {}
@@ -325,9 +327,9 @@
     document.body.classList.remove("intro-on");
     document.body.classList.add("live");
     window.Fountain && window.Fountain.start($("fountain"));
-    if (ink) return inkName();
-    if (instant) nameEl.classList.add("instant");
-    nameEl.classList.add("set");
+    if (instant) { nameEl.classList.add("off"); return; }
+    nameEl.classList.add("gone");
+    setTimeout(() => nameEl.classList.add("off"), 1200);
   }
 
   async function run() {
@@ -348,7 +350,6 @@
   const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   $("skip").onclick = () => finish(true);
-  if (calm) finish(true);
-  else if (seen && !force) finish(true, true);
+  if (calm || (seen && !force)) finish(true);
   else $("enter").onclick = run;
 })();

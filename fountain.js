@@ -8,7 +8,7 @@
 //    it. click (or tap) and the jet surges. the grass leans away from you.
 window.Fountain = (() => {
   const NS = "http://www.w3.org/2000/svg";
-  const VB = { x: 30, y: 50, w: 340, h: 316 };   // must match the svg viewBox
+  const VB = { x: 24, y: 50, w: 352, h: 330 };   // must match the svg viewBox
   const CX = 200;
   const rand = (a, b) => a + Math.random() * (b - a);
   const el = (tag, attrs = {}, parent) => {

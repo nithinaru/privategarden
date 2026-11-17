@@ -28,22 +28,23 @@
     <button id="skip" class="skip">skip</button>
   </section>
 
-  <main id="site">
-    <h1 id="name" class="name" aria-label="Nithin Aruswamy"></h1>
+  <!-- the name as a title card: written large at the end of the intro, then it lifts away -->
+  <div id="name" class="name" aria-hidden="true"></div>
 
-    <div class="meta">
-      <div class="bio">
-        <p>Design can save the world.</p>
-        <p><b>Private Garden</b> is coming soon.</p>
-        <p>Until then, it grows in private.</p>
-        <a class="btn" href="https://travel.nithinaruswamy.com">Travel <span aria-hidden="true">→</span></a>
-      </div>
+  <main id="site">
+    <!-- one quiet row of facts; the fountain is the only large thing -->
+    <header class="strip">
+      <h1 class="who">Nithin Aruswamy</h1>
+      <p class="what"><b>Private Garden</b><span>coming soon</span></p>
       <p class="mail"><span id="email"></span><button id="copy">Copy</button></p>
-    </div>
+      <a class="go" href="https://travel.nithinaruswamy.com">Travel <span aria-hidden="true">→</span></a>
+    </header>
 
     <div class="garden">
-      <svg id="fountain" viewBox="30 50 340 316" preserveAspectRatio="xMidYMax meet" role="img" aria-label="A fountain, drawn by hand"></svg>
+      <svg id="fountain" viewBox="24 50 352 330" preserveAspectRatio="xMidYMax meet" role="img" aria-label="A fountain, drawn by hand. Put your cursor in the water."></svg>
     </div>
+
+    <p class="belief">Design can save the world.</p>
 
     <a class="replay" href="?intro">Replay intro</a>
   </main>
