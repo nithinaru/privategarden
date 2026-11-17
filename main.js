@@ -14,6 +14,7 @@
 
   // size the name so it spans the screen with an even margin either side
   async function fitName() {
+    try { await document.fonts.load('480 100px "Source Serif 4"', "Private Garden"); } catch (e) {}
     await document.fonts.ready;
     const chs = nameEl.querySelectorAll(".ch");
     if (!chs.length) return;
@@ -288,6 +289,14 @@
     stage.classList.add("card");
     await wait(1100);
   }
+  // with no film before it, the card is simply there on the paper
+  function cardNow() {
+    intro.style.transition = stage.style.transition = "none";
+    intro.classList.add("paper");
+    stage.classList.add("card");
+    stage.offsetWidth;                              // settle before the transitions come back
+    intro.style.transition = stage.style.transition = "";
+  }
 
   // ---- 3. flicker inside the card ----
   // the photos start loading with the film, so they are ready when it ends
@@ -434,7 +443,7 @@
   // ---- 5. land on the page ----
   // the title was written in the middle of the screen; now it moves up to sit
   // half cut at the top while the page arrives under it
-  function finish(instant, ink) {
+  function finish(instant) {
     if (done && instant) return;
     done = true;
     try { localStorage.setItem("pg-seen", "1"); } catch (e) {}
@@ -446,18 +455,23 @@
     window.Fountain && window.Fountain.start($("fountain"));
     if (instant) nameEl.classList.add("still");     // no glide: it is simply there
     nameEl.classList.remove("card");
-    if (ink) return inkName();
     if (instant) nameEl.classList.add("instant", "set");
   }
 
-  async function run() {
+  // film = false starts at the photos: that is what a returning visitor gets
+  async function run(film) {
     // a reload part way down the page must not leave the intro playing off screen
     try { history.scrollRestoration = "manual"; } catch (e) {}
     scrollTo(0, 0);
     loadShots();
-    await Promise.race([playReel(), leftFilm]); if (done) return;
-    phase = "rest";
-    await toCard(); if (done) return;
+    if (film) {
+      await Promise.race([playReel(), leftFilm]); if (done) return;
+      phase = "rest";
+      await toCard(); if (done) return;
+    } else {
+      phase = "rest";
+      cardNow();
+    }
     await flicker(); if (done) return;
     await rule(); if (done) return;
     finish(false);
@@ -486,6 +500,5 @@
 
   $("skip").onclick = skip;
   if (calm) finish(true);
-  else if (seen && !force) finish(true, true);
-  else run();
+  else run(!seen || force);
 })();
