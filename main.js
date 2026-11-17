@@ -93,6 +93,16 @@
   $("x").href = "https://x.com/" + S.x;
   $("x-handle").textContent = "@" + S.x;
   $("cap").innerHTML = (S.caption || []).map((l) => `<span>${l}</span>`).join("");
+  $("bio").innerHTML = (S.bio || []).map((l) => `<span>${l.replace(/\*\*(.+?)\*\*/g, '<b class="hl-me">$1</b>')}</span>`).join("");
+  $("about").href = S.about;
+
+  // the colour sweep: the label is doubled, and the copy on top carries a band of
+  // colour that crosses it from left to right on hover
+  document.querySelectorAll(".hl-me").forEach((el) => {
+    const text = el.textContent;
+    el.classList.add("hl");
+    el.innerHTML = `<span>${text}</span><span class="hl-grad" aria-hidden="true">${text}</span>`;
+  });
 
   // ---- subtitles ----
   let shown = null;

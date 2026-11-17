@@ -33,7 +33,7 @@
     <!-- written large in the middle at the end of the intro, then it moves up and sits half cut at the top -->
     <h1 id="name" class="name card" aria-label="Private Garden"></h1>
 
-    <p class="under"><span class="soon">Coming soon</span><span class="by">A Collective by <b>Nithin Aruswamy</b></span></p>
+    <p class="under"><span class="by">A Collective by <b>Nithin Aruswamy</b></span></p>
 
     <div class="garden">
       <svg id="fountain" viewBox="24 50 352 330" preserveAspectRatio="xMidYMax meet" role="img" aria-label="A fountain, drawn by hand. Put your cursor in the water."></svg>
@@ -41,13 +41,19 @@
 
     <blockquote class="quote"><p id="quote"></p><cite id="quote-by"></cite></blockquote>
 
+    <!-- three short lines and a way out, on the right -->
+    <div class="bio">
+      <p id="bio"></p>
+      <a class="btn" id="about"><span class="hl-me">About</span><span class="btn-icon" aria-hidden="true"><i>→</i><i>→</i></span></a>
+    </div>
+
     <a class="foot replay" href="?intro">
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8.6 8.4a.9.9 0 0 0-.9-.9 1.8 1.8 0 0 0-1.8 1.8 2.9 2.9 0 0 0 2.9 2.9 4.7 4.7 0 0 0 4.7-4.7A6.1 6.1 0 0 0 7.4 1.4 6.6 6.6 0 0 0 2 4.2M2 1.6v2.8h2.8"/></svg>
-      Replay intro
+      <span class="hl-me">Replay intro</span>
     </a>
     <a class="foot x" id="x" target="_blank" rel="noopener">
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.4 2.5h2.9l8.3 11h-2.9zM13 2.5 8.8 7.2M7 9.2l-4.2 4.3"/></svg>
-      <span id="x-handle"></span>
+      <span id="x-handle" class="hl-me"></span>
     </a>
   </main>
 

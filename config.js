@@ -6,11 +6,21 @@ window.SITE = {
   // the quote beside the fountain
   quote: { text: "Good design is as little design as possible.", by: "Dieter Rams" },
 
+  // the three lines on the right of the fountain. **double stars** make a word bold,
+  // and bold words get the colour sweep on hover.
+  bio: [
+    "Design can save the world.",
+    "Architected ad campaign for **CapCut Design Studio**.",
+    "Tending **Private Garden**, opening soon.",
+  ],
+  // where the About button goes
+  about: "https://nithinaruswamy.com",
+
   // bottom-right link
   x: "nithinaru",
 
   // the small caption at the foot of the screen while the photos run. one string per line.
-  caption: ["People, places and machines that changed", "what we thought was possible."],
+  caption: ["A collective by Nithin Aruswamy · Est. 2026"],
 
 
   // the 20s montage (music baked in). if this file is missing, a placeholder reel plays instead.
