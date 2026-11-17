@@ -13,5 +13,6 @@ window.SITE = {
 
   // photos that flicker inside the card after the reel. ~12-16 is a good number.
   // e.g. "assets/flicker/01.jpg". empty = generated placeholder frames.
-  flicker: [],
+  // run new photos through tools/flicker.py so they match.
+  flicker: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => `assets/flicker/${String(n).padStart(2, "0")}.jpg`),
 };

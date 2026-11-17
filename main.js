@@ -10,7 +10,19 @@
   let done = false;
 
   // ---- name, one span per letter with an alt font for hover ----
-  const ALTS = ["f-ital", "f-black", "f-script", "f-pixel", "f-mono"];
+  const ALTS = ["f-ital", "f-black", "f-script", "f-story", "f-bench", "f-pixel"];
+
+  // size the name so it spans the screen with an even margin either side
+  async function fitName() {
+    await document.fonts.ready;
+    const chs = nameEl.querySelectorAll(".ch");
+    if (!chs.length) return;
+    nameEl.style.fontSize = "";
+    const w = chs[chs.length - 1].getBoundingClientRect().right - chs[0].getBoundingClientRect().left;
+    const fs = parseFloat(getComputedStyle(nameEl).fontSize);
+    nameEl.style.fontSize = (fs * (innerWidth * 0.94)) / w + "px";
+  }
+  addEventListener("resize", () => fitName());
   function buildName() {
     const txt = "Nithin Aruswamy";
     let i = 0, last = -1;
@@ -107,7 +119,6 @@
     intro.classList.add("paper");
     stage.classList.add("card");
     await wait(1100);
-    sub.classList.remove("on");
   }
 
   // ---- 3. flicker inside the card ----
@@ -117,7 +128,7 @@
     for (let i = 0; i < count; i++) {
       const d = document.createElement("div");
       const r = (a, b) => a + Math.random() * (b - a);
-      const ink = "#111", paper = "#efece4";
+      const ink = "#111", paper = "#fff";
       const flip = i % 2 === 0;
       const bg = flip ? ink : paper, fg = flip ? paper : ink;
       const kind = i % 4;
@@ -142,12 +153,22 @@
     reel.classList.remove("on");
     $("placeholder").classList.remove("on");
     box.classList.add("on");
-    // starts slow, speeds up, like a flipbook catching
-    for (let i = 0; i < frames.length && !done; i++) {
-      box.replaceChildren(frames[i]);
-      await wait(Math.max(55, 160 - i * 10));
+    const counter = $("count");
+    counter.classList.add("on");
+    // starts slow and quickens a little, but every photo stays readable.
+    // a short set loops so there are always at least 8 beats.
+    const count = Math.max(frames.length, 8);
+    const pad = (n) => String(n).padStart(2, "0");
+    for (let i = 0; i < count && !done; i++) {
+      const k = i % frames.length;
+      box.replaceChildren(frames[k]);
+      counter.textContent = `${pad(k + 1)} / ${pad(frames.length)}`;
+      await wait(420 - 220 * (i / Math.max(count - 1, 1)));
     }
+    await wait(250);
     box.replaceChildren();
+    counter.classList.remove("on");
+    sub.classList.remove("on");
     stage.style.background = "var(--paper)";
     stage.classList.add("out");
     await wait(350);
@@ -156,7 +177,7 @@
   // ---- 4. ruler lines, then the type sets onto them ----
   async function rule() {
     intro.classList.add("clear");
-    await document.fonts.ready;
+    await fitName();
     const fs = parseFloat(getComputedStyle(nameEl).fontSize);
     const base = nameEl.querySelector(".probe").getBoundingClientRect().top;
     const chs = [...nameEl.querySelectorAll(".ch")];
@@ -235,6 +256,7 @@
 
   // ---- go ----
   buildName();
+  fitName();
   let seen = null;
   try { seen = localStorage.getItem("pg-seen"); } catch (e) {}
   const force = new URLSearchParams(location.search).has("intro");

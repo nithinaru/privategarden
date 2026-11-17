@@ -1,10 +1,13 @@
-// stop-motion fountain: doodles, then construction lines, then ink, then water.
-// everything runs at 8fps ("on twos") and the lines boil so it feels hand drawn.
+// the fountain, drawn like stop-motion: each part is outlined stroke by stroke,
+// then shaded in with hatching, bottom tier to top. then water runs down
+// tier by tier, fills each bowl, and keeps flowing. paper + ink only.
 window.Fountain = (() => {
   const NS = "http://www.w3.org/2000/svg";
-  const FPS = 8;
-  const INK = "#111", PAPER = "#efece4";
+  const FPS = 12;          // drawing speed, in stepped frames
+  const LOOP_FPS = 8;      // water loop, on twos
+  const INK = "#111", PAPER = "#fff";
 
+  let uid = 0;
   const el = (tag, attrs = {}, parent) => {
     const n = document.createElementNS(NS, tag);
     for (const k in attrs) n.setAttribute(k, attrs[k]);
@@ -13,13 +16,120 @@ window.Fountain = (() => {
   };
   const tick = () => new Promise((r) => setTimeout(r, 1000 / FPS));
   const frames = async (n) => { for (let i = 0; i < n; i++) await tick(); };
+  const E = (cx, cy, rx, ry) =>
+    `M${cx - rx},${cy} A${rx},${ry} 0 1 0 ${cx + rx},${cy} A${rx},${ry} 0 1 0 ${cx - rx},${cy} Z`;
 
-  // reveal a stroke in a few hard steps instead of smoothly
-  async function drawIn(paths, steps = 3) {
+  // ---- the drawing ----
+  // strokes: groups drawn one after another (paths in a group draw together)
+  // fill: closed shape that gets hatched in after the outline
+  // surface: the water in that bowl, hatched in once water reaches it
+  const PARTS = [
+    { // basin
+      strokes: [
+        [E(200, 296, 152, 34)],
+        [E(200, 297, 138, 27)],
+        ["M48,296 L48,320", "M352,296 L352,320"],
+        ["M48,320 A152,34 0 0 0 352,320"],
+        ["M70,350 C150,361 250,361 330,350"],
+      ],
+      fill: "M48,296 L48,320 A152,34 0 0 0 352,320 L352,296 A152,34 0 0 1 48,296 Z",
+      surface: E(200, 298, 136, 26),
+    },
+    { // pedestal
+      strokes: [["M184,300 C190,272 192,240 194,204", "M216,300 C210,272 208,240 206,204"]],
+      fill: "M184,300 C190,272 192,240 194,204 L206,204 C208,240 210,272 216,300 Z",
+    },
+    { // lower bowl
+      strokes: [
+        [E(200, 200, 72, 11)],
+        ["M128,200 C140,232 175,240 200,240 C225,240 260,232 272,200"],
+      ],
+      fill: "M128,200 C140,232 175,240 200,240 C225,240 260,232 272,200 A72,11 0 0 1 128,200 Z",
+      surface: E(200, 201, 62, 7.5),
+    },
+    { // middle stem
+      strokes: [["M195,150 L193,200", "M205,150 L207,200"], [E(200, 182, 10, 6)]],
+      fill: `M195,150 L193,200 L207,200 L205,150 Z ${E(200, 182, 10, 6)}`,
+    },
+    { // middle bowl
+      strokes: [
+        [E(200, 150, 46, 7)],
+        ["M154,150 C165,172 185,178 200,178 C215,178 235,172 246,150"],
+      ],
+      fill: "M154,150 C165,172 185,178 200,178 C215,178 235,172 246,150 A46,7 0 0 1 154,150 Z",
+      surface: E(200, 151, 38, 4.4),
+    },
+    { // top stem
+      strokes: [["M196,115 L195,150", "M204,115 L205,150"], [E(200, 135, 7, 4.5)]],
+      fill: `M196,115 L195,150 L205,150 L204,115 Z ${E(200, 135, 7, 4.5)}`,
+    },
+    { // top bowl
+      strokes: [
+        [E(200, 115, 28, 5)],
+        ["M172,115 C178,130 190,134 200,134 C210,134 222,130 228,115"],
+      ],
+      fill: "M172,115 C178,130 190,134 200,134 C210,134 222,130 228,115 A28,5 0 0 1 172,115 Z",
+      surface: E(200, 116, 22, 2.8),
+    },
+    { // finial
+      strokes: [
+        ["M196,116 C190,108 192,98 197,94 L197,89", "M204,116 C210,108 208,98 203,94 L203,89"],
+        [E(200, 84.5, 4.5, 4.5)],
+      ],
+      fill: `M196,116 C190,108 192,98 197,94 L197,89 L203,89 L203,94 C208,98 210,108 204,116 Z ${E(200, 84.5, 4.5, 4.5)}`,
+    },
+  ];
+
+  // water, top down. each step: the streams, then the bowl they land in.
+  const WATER = [
+    { streams: ["M200,80 C197,66 190,64 185,74", "M200,80 C203,66 210,64 215,74"], fills: 6 },
+    { streams: ["M174,116 C163,119 159,131 161,146", "M226,116 C237,119 241,131 239,146"], fills: 4 },
+    { streams: ["M157,152 C142,157 136,176 138,196", "M243,152 C258,157 264,176 262,196"], fills: 2 },
+    { streams: ["M131,203 C108,210 101,250 103,288", "M269,203 C292,210 299,250 297,288"], fills: 0 },
+  ];
+  const LANDINGS = [[103, 292], [297, 292]];
+
+  // ---- helpers ----
+  // hand-drawn wobble baked into the geometry (no live svg filter, which is
+  // expensive to re-render every frame)
+  let measure;
+  function wobble(d, amp, seed) {
+    const p = el("path", { d }, measure);
+    const L = p.getTotalLength();
+    const n = Math.max(8, Math.ceil(L / 4));
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const t = (i / n) * L;
+      const a = p.getPointAtLength(Math.max(t - 0.5, 0)), b = p.getPointAtLength(Math.min(t + 0.5, L));
+      const c = p.getPointAtLength(t);
+      const dx = b.x - a.x, dy = b.y - a.y, m = Math.hypot(dx, dy) || 1;
+      const o = amp * (Math.sin(t * 0.11 + seed * 1.7) * 0.6 + Math.sin(t * 0.31 + seed * 3.1) * 0.4);
+      pts.push(`${(c.x - (dy / m) * o).toFixed(1)},${(c.y + (dx / m) * o).toFixed(1)}`);
+    }
+    p.remove();
+    return "M" + pts.join(" L");
+  }
+
+  // each outline gets three wobble variants; the boil loop flips between them
+  const boilSets = [];
+  function stroke(parent, d, w = 1.8, variants = 3) {
+    const set = [];
+    for (let v = 0; v < variants; v++) {
+      set.push(el("path", {
+        d: wobble(d, 0.9, v * 2.3 + uid++), fill: "none", stroke: INK, "stroke-width": w,
+        "stroke-linecap": "round", "stroke-linejoin": "round", style: "visibility:hidden",
+      }, parent));
+    }
+    set[0].set = set;
+    return set[0];
+  }
+
+  // reveal strokes in a few hard steps, like frames of a pencil moving
+  async function drawIn(paths, steps) {
     paths.forEach((p) => {
       const len = p.getTotalLength();
       p.dataset.len = len;
-      p.style.strokeDasharray = len;
+      p.style.strokeDasharray = `${len} ${len}`;
       p.style.strokeDashoffset = len;
       p.style.visibility = "visible";
     });
@@ -27,148 +137,108 @@ window.Fountain = (() => {
       paths.forEach((p) => (p.style.strokeDashoffset = p.dataset.len * (1 - s / steps)));
       await tick();
     }
+    paths.forEach((p) => {
+      p.style.strokeDasharray = "none";
+      if (p.set && p.set.length > 1) boilSets.push(p.set);
+    });
   }
 
-  const sketch = (g, d, w = 1.6) =>
-    el("path", { d, fill: "none", stroke: INK, "stroke-width": w, "stroke-linecap": "round", "stroke-linejoin": "round", style: "visibility:hidden" }, g);
+  // hatch a closed shape, sweeping left to right in `steps` frames
+  async function hatch(parent, d, { angle = 52, gap = 2.6, width = 1.9, steps = 4, opaque = true } = {}) {
+    const id = "h" + ++uid;
+    const probe = el("path", { d }, parent);
+    const b = probe.getBBox();
+    probe.remove();
+    const clip = el("clipPath", { id }, parent);
+    el("path", { d }, clip);
+    const g = el("g", { "clip-path": `url(#${id})` }, parent);
+    // solid paper underneath, so parts in front hide the parts behind
+    if (opaque) el("path", { d, fill: PAPER }, g);
 
-  // quick studies before the fountain shows up
-  const DOODLES = [
-    // circle studies
-    ["M150,200 C150,160 250,160 250,200 C250,240 150,242 152,198",
-     "M165,200 C166,175 236,172 236,200 C236,226 166,228 168,202",
-     "M120,200 L280,200", "M200,140 L200,262"],
-    // a leaf
-    ["M200,300 C150,250 152,150 200,98 C248,150 250,250 200,300",
-     "M200,296 L200,112", "M200,250 L170,226", "M200,215 L230,190", "M200,180 L176,160", "M200,250 L232,224"],
-    // a chair
-    ["M160,130 C185,120 215,120 240,130", "M160,130 L162,222", "M240,130 L238,222",
-     "M150,222 L250,222", "M156,222 L150,300", "M244,222 L250,300", "M170,226 L176,290", "M230,226 L224,290"],
-  ];
-
-  // construction lines for the fountain
-  const GUIDES = [
-    "M200,56 L200,350",
-    "M44,296 L356,296", "M120,200 L280,200", "M148,150 L252,150", "M166,115 L234,115",
-    "M48,296 A152,34 0 1 0 352,296 A152,34 0 1 0 48,296",
-    "M128,200 A72,11 0 1 0 272,200 A72,11 0 1 0 128,200",
-    "M154,150 A46,7 0 1 0 246,150 A46,7 0 1 0 154,150",
-  ];
-
-  // the inked fountain, bottom tier first. each entry shows up on its own frame.
-  function inkTiers(g) {
-    const tiers = [];
-    const tier = () => { const t = el("g", { style: "visibility:hidden" }, g); tiers.push(t); return t; };
-
-    let t = tier(); // basin wall + rim + water
-    el("path", { d: "M48,296 L48,318 A152,34 0 0 0 352,318 L352,296 A152,34 0 0 1 48,296 Z", fill: INK }, t);
-    [[80, 328], [140, 338], [200, 341], [260, 338], [320, 328]].forEach(([x, y]) => el("circle", { cx: x, cy: y, r: 4, fill: PAPER }, t));
-    el("ellipse", { cx: 200, cy: 296, rx: 152, ry: 34, fill: PAPER, stroke: INK, "stroke-width": 7 }, t);
-    el("ellipse", { cx: 200, cy: 299, rx: 132, ry: 25, fill: INK }, t);
-
-    t = tier(); // pedestal
-    el("path", { d: "M184,300 C190,272 192,240 194,204 L206,204 C208,240 210,272 216,300 Z", fill: INK }, t);
-    el("path", { d: "M180,302 Q200,294 220,302", fill: "none", stroke: PAPER, "stroke-width": 2 }, t);
-
-    t = tier(); // lower bowl
-    el("path", { d: "M128,200 C140,232 175,240 200,240 C225,240 260,232 272,200 Z", fill: INK }, t);
-    [150, 175, 200, 225].forEach((x) => el("path", { d: `M${x},214 q6.5,8 13,0`, fill: "none", stroke: PAPER, "stroke-width": 2 }, t));
-    el("ellipse", { cx: 200, cy: 200, rx: 72, ry: 11, fill: PAPER, stroke: INK, "stroke-width": 4 }, t);
-    el("ellipse", { cx: 200, cy: 201, rx: 58, ry: 6.5, fill: INK }, t);
-
-    t = tier(); // middle stem + bowl
-    el("path", { d: "M195,150 L193,201 L207,201 L205,150 Z", fill: INK }, t);
-    el("ellipse", { cx: 200, cy: 182, rx: 10, ry: 6, fill: INK }, t);
-    el("path", { d: "M155,150 C165,172 185,178 200,178 C215,178 235,172 245,150 Z", fill: INK }, t);
-    el("ellipse", { cx: 200, cy: 150, rx: 46, ry: 7, fill: PAPER, stroke: INK, "stroke-width": 3.5 }, t);
-    el("ellipse", { cx: 200, cy: 151, rx: 36, ry: 3.8, fill: INK }, t);
-
-    t = tier(); // top stem + bowl
-    el("path", { d: "M196,115 L195,151 L205,151 L204,115 Z", fill: INK }, t);
-    el("ellipse", { cx: 200, cy: 136, rx: 7, ry: 4.5, fill: INK }, t);
-    el("path", { d: "M172,115 C178,130 190,134 200,134 C210,134 222,130 228,115 Z", fill: INK }, t);
-    el("ellipse", { cx: 200, cy: 115, rx: 28, ry: 5, fill: PAPER, stroke: INK, "stroke-width": 3 }, t);
-    el("ellipse", { cx: 200, cy: 116, rx: 20, ry: 2.4, fill: INK }, t);
-
-    t = tier(); // finial
-    el("path", { d: "M196,116 C190,108 192,98 197,94 L197,89 L203,89 L203,94 C208,98 210,108 204,116 Z", fill: INK }, t);
-    el("circle", { cx: 200, cy: 85, r: 4.5, fill: INK }, t);
-
-    return tiers;
+    const lines = [];
+    const j = () => (Math.random() - 0.5) * 1.2; // slightly uneven, like a pen
+    const line = (x1, y1, x2, y2) => lines.push(el("line", {
+      x1: x1 + j(), y1: y1 + j(), x2: x2 + j(), y2: y2 + j(),
+      stroke: INK, "stroke-width": (width * (0.85 + Math.random() * 0.3)).toFixed(2),
+      "stroke-linecap": "round", style: "visibility:hidden",
+    }, g));
+    if (angle === 0) {
+      // water: flat strokes, top to bottom
+      for (let y = b.y + gap / 2; y < b.y + b.height; y += gap) line(b.x - 2, y, b.x + b.width + 2, y);
+    } else {
+      const rise = b.height / Math.tan((angle * Math.PI) / 180); // x travel across the height
+      for (let x = b.x - rise - 2; x < b.x + b.width + 2; x += gap) line(x, b.y + b.height + 1, x + rise, b.y - 1);
+    }
+    for (let s = 1; s <= steps; s++) {
+      const upto = Math.ceil((lines.length * s) / steps);
+      lines.slice(0, upto).forEach((l) => (l.style.visibility = "visible"));
+      await tick();
+    }
+    return g;
   }
 
-  const STREAMS = [
-    "M200,80 C197,66 190,64 185,74", "M200,80 C203,66 210,64 215,74",       // spout
-    "M174,116 C163,119 159,131 161,146", "M226,116 C237,119 241,131 239,146", // top -> middle
-    "M157,152 C142,157 136,176 138,196", "M243,152 C258,157 264,176 262,196", // middle -> lower
-    "M131,203 C108,210 101,250 103,288", "M269,203 C292,210 299,250 297,288", // lower -> basin
-  ];
-  const SPLASH = [
-    "M93,292 l-7,-7 M103,291 l0,-10 M113,292 l7,-7",
-    "M287,292 l-7,-7 M297,291 l0,-10 M307,292 l7,-7",
-  ];
-
+  // ---- run ----
   async function start(svg) {
     if (!svg || svg.dataset.on) return;
     svg.dataset.on = "1";
     svg.replaceChildren();
-
-    // boil: a turbulence displacement whose seed changes every frame
-    const defs = el("defs", {}, svg);
-    const f = el("filter", { id: "boil", x: "-10%", y: "-10%", width: "120%", height: "120%" }, defs);
-    const turb = el("feTurbulence", { type: "fractalNoise", baseFrequency: "0.035", numOctaves: "2", seed: "1", result: "n" }, f);
-    el("feDisplacementMap", { in: "SourceGraphic", in2: "n", scale: "3.2", xChannelSelector: "R", yChannelSelector: "G" }, f);
-    const root = el("g", { filter: "url(#boil)" }, svg);
-
-    let seed = 1;
-    const boil = setInterval(() => turb.setAttribute("seed", (seed = (seed % 9) + 1)), 1000 / FPS);
-
     const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // 1. doodles: draw, hold, cut
-    if (!calm) {
-      for (const set of DOODLES) {
-        const g = el("g", {}, root);
-        const paths = set.map((d) => sketch(g, d));
-        for (const p of paths) await drawIn([p], 2);
-        await frames(4);
-        g.remove();
-        await frames(1);
+    measure = el("g", { style: "visibility:hidden" }, svg);
+    const root = el("g", {}, svg);
+    // boil: every outline flips to its next wobble variant, on twos
+    let k = 0;
+    if (!calm) setInterval(() => {
+      k = (k + 1) % 3;
+      boilSets.forEach((set) => set.forEach((p, i) => (p.style.visibility = i === k ? "visible" : "hidden")));
+    }, 1000 / LOOP_FPS);
+
+    const fast = calm ? { draw: 1, hatch: 1 } : { draw: 4, hatch: 4 };
+
+    // 1. the stone, bottom to top
+    const stone = el("g", {}, root);
+    for (const part of PARTS) {
+      const g = el("g", {}, stone);
+      const fillLayer = el("g", {}, g);   // hatching sits under its own outline
+      for (const group of part.strokes) {
+        await drawIn(group.map((d) => stroke(g, d)), fast.draw);
       }
+      await hatch(fillLayer, part.fill, { steps: fast.hatch });
+      if (!calm) await frames(1);
     }
+    if (!calm) await frames(3);
 
-    // 2. construction lines for the fountain
-    const guides = el("g", {}, root);
-    const gp = GUIDES.map((d) => sketch(guides, d, 1));
-    if (calm) gp.forEach((p) => (p.style.visibility = "visible"));
-    else await drawIn(gp, 4);
-    await frames(2);
-
-    // 3. ink it in, tier by tier
-    const ink = el("g", {}, root);
-    const tiers = inkTiers(ink);
-    for (const t of tiers) { t.style.visibility = "visible"; if (!calm) await frames(2); }
-    await frames(2);
-    guides.remove();
-
-    // 4. water
+    // 2. water runs down, filling each bowl on the way
     const water = el("g", {}, root);
-    const streams = STREAMS.map((d) =>
-      el("path", { d, fill: "none", stroke: INK, "stroke-width": 2.6, "stroke-linecap": "round", style: "visibility:hidden" }, water));
-    if (!calm) await drawIn(streams, 3);
-    else streams.forEach((s) => (s.style.visibility = "visible"));
-    const splash = SPLASH.map((d) => el("path", { d, fill: "none", stroke: INK, "stroke-width": 2, "stroke-linecap": "round" }, water));
+    const allStreams = [];
+    for (const step of WATER) {
+      const ps = step.streams.map((d) => stroke(water, d, 2.4, 1));
+      allStreams.push(...ps);
+      await drawIn(ps, calm ? 1 : 3);
+      const surface = PARTS[step.fills].surface;
+      await hatch(water, surface, { angle: 0, gap: 2.2, width: 1, steps: calm ? 1 : 3, opaque: false });
+    }
+    if (calm) return;
 
-    // dashed so it reads as falling droplets, stepped each frame
-    streams.forEach((s) => (s.style.strokeDasharray = "5 6"));
+    // 3. keep it running: falling droplets, splashes, rings in the basin
+    allStreams.forEach((s) => (s.style.strokeDasharray = "5 6"));
+    const splashes = LANDINGS.map(([x, y]) =>
+      el("path", { d: `M${x - 10},${y} l-6,-7 M${x},${y - 2} l0,-10 M${x + 10},${y} l6,-7`, fill: "none", stroke: INK, "stroke-width": 1.8, "stroke-linecap": "round" }, water));
+    const rings = LANDINGS.map(([x, y]) =>
+      el("ellipse", { cx: x, cy: y + 4, rx: 4, ry: 1.2, fill: "none", stroke: INK, "stroke-width": 1.2 }, water));
     let off = 0, n = 0;
-    if (calm) { clearInterval(boil); return; }
     setInterval(() => {
       off -= 4;
-      streams.forEach((s) => (s.style.strokeDashoffset = off));
-      splash.forEach((s, i) => (s.style.visibility = (n + i) % 2 ? "visible" : "hidden"));
+      allStreams.forEach((s) => (s.style.strokeDashoffset = off));
+      splashes.forEach((s, i) => (s.style.visibility = (n + i) % 2 ? "visible" : "hidden"));
+      rings.forEach((r, i) => {
+        const k = (n + i * 2) % 4;              // grows over 4 frames, then resets
+        r.setAttribute("rx", 5 + k * 5);
+        r.setAttribute("ry", 1.4 + k * 1.3);
+        r.style.visibility = k === 3 ? "hidden" : "visible";
+      });
       n++;
-    }, 1000 / FPS);
+    }, 1000 / LOOP_FPS);
   }
 
   return { start };
