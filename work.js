@@ -58,8 +58,12 @@
       c.ty = -H * 0.3 + row * cellH + (c.fy - 0.5) * cellH * 0.3 + (col % 2) * cellH * 0.3;
     });
     drift = rows * cellH + H * 0.5;
+    // the two phrases are different lengths, so the group is nudged sideways until
+    // phrase + stack + phrase sits in the middle of the screen as one line
+    const k = Math.min(1, W / 1100);
+    nudge = ((wordL.offsetWidth - wordR.offsetWidth) / 2) * k;
   }
-  let drift = 0;
+  let drift = 0, nudge = 0;
 
   const clamp = (v) => Math.min(1, Math.max(0, v));
   const span = (p, a, b) => clamp((p - a) / (b - a));
@@ -71,8 +75,8 @@
     const gap = 14 + grown * (stackW * 0.5 + N * stackW * 0.04 + 22);
     const wordA = 1 - span(p, 0.22, 0.36);
     const k = Math.min(1, W / 1100);
-    wordL.style.transform = `translate(calc(-100% - ${gap}px), -50%) scale(${k})`;
-    wordR.style.transform = `translate(${gap}px, -50%) scale(${k})`;
+    wordL.style.transform = `translate(calc(-100% - ${gap - nudge}px), -50%) scale(${k})`;
+    wordR.style.transform = `translate(${gap + nudge}px, -50%) scale(${k})`;
     wordL.style.opacity = wordR.style.opacity = wordA;
     const up = ease(span(p, 0.45, 1)) * drift;
 
@@ -80,7 +84,7 @@
       const born = 0.02 + (c.rank / N) * 0.24;
       const pop = out(span(p, born, born + 0.035));
       const fly = ease(span(p, 0.3 + c.jit * 0.06, 0.46 + c.jit * 0.06));
-      const x = c.sx + (c.tx - c.sx) * fly, y = c.sy + (c.ty - c.sy) * fly - up * fly;
+      const x = c.sx + nudge * (1 - fly) + (c.tx - c.sx) * fly, y = c.sy + (c.ty - c.sy) * fly - up * fly;
       const s = (c.ss * (0.55 + 0.45 * pop)) * (1 - fly) + fly;
       c.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${s.toFixed(4)})`;
       c.el.style.opacity = pop;
