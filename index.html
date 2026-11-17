@@ -23,30 +23,32 @@
     </div>
     <svg id="fgrid" class="fgrid" preserveAspectRatio="none" aria-hidden="true"></svg>
     <p id="count" class="count"></p>
+    <p id="cap" class="cap"></p>
     <p id="sub" class="sub"></p>
     <svg id="guides" class="guides"></svg>
     <button id="skip" class="skip">skip</button>
   </section>
 
-  <!-- the name as a title card: written large at the end of the intro, then it lifts away -->
-  <div id="name" class="name" aria-hidden="true"></div>
-
   <main id="site">
-    <!-- one quiet row of facts; the fountain is the only large thing -->
-    <header class="strip">
-      <h1 class="who">Nithin Aruswamy</h1>
-      <p class="what"><b>Private Garden</b><span>coming soon</span></p>
-      <p class="mail"><span id="email"></span><button id="copy">Copy</button></p>
-      <a class="go" href="https://travel.nithinaruswamy.com">Travel <span aria-hidden="true">→</span></a>
-    </header>
+    <!-- written large in the middle at the end of the intro, then it moves up and sits half cut at the top -->
+    <h1 id="name" class="name card" aria-label="Private Garden"></h1>
+
+    <p class="under"><span class="soon">Coming soon</span><span class="by">A Collective by <b>Nithin Aruswamy</b></span></p>
 
     <div class="garden">
       <svg id="fountain" viewBox="24 50 352 330" preserveAspectRatio="xMidYMax meet" role="img" aria-label="A fountain, drawn by hand. Put your cursor in the water."></svg>
     </div>
 
-    <p class="belief">Design can save the world.</p>
+    <blockquote class="quote"><p id="quote"></p><cite id="quote-by"></cite></blockquote>
 
-    <a class="replay" href="?intro">Replay intro</a>
+    <a class="foot replay" href="?intro">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8.6 8.4a.9.9 0 0 0-.9-.9 1.8 1.8 0 0 0-1.8 1.8 2.9 2.9 0 0 0 2.9 2.9 4.7 4.7 0 0 0 4.7-4.7A6.1 6.1 0 0 0 7.4 1.4 6.6 6.6 0 0 0 2 4.2M2 1.6v2.8h2.8"/></svg>
+      Replay intro
+    </a>
+    <a class="foot x" id="x" target="_blank" rel="noopener">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.4 2.5h2.9l8.3 11h-2.9zM13 2.5 8.8 7.2M7 9.2l-4.2 4.3"/></svg>
+      <span id="x-handle"></span>
+    </a>
   </main>
 
   <!-- work: scroll-driven stack that bursts into a field. see work.js -->

@@ -20,7 +20,9 @@
     nameEl.style.fontSize = "";
     const w = chs[chs.length - 1].getBoundingClientRect().right - chs[0].getBoundingClientRect().left;
     const fs = parseFloat(getComputedStyle(nameEl).fontSize);
-    nameEl.style.fontSize = (fs * (innerWidth * 0.84)) / w + "px";
+    const size = (fs * (innerWidth * 0.94)) / w;
+    nameEl.style.fontSize = size + "px";
+    $("site").style.setProperty("--title", size + "px");   // the layout below makes room for it
   }
   addEventListener("resize", () => fitName());
 
@@ -59,7 +61,7 @@
   }
 
   function buildName() {
-    const txt = "Nithin Aruswamy";
+    const txt = S.title || "Private Garden";
     let i = 0, last = -1;
     for (const c of txt) {
       if (c === " ") {
@@ -85,13 +87,12 @@
     nameEl.appendChild(p);
   }
 
-  // ---- email ----
-  $("email").textContent = S.email;
-  $("copy").onclick = async () => {
-    try { await navigator.clipboard.writeText(S.email); } catch (e) {}
-    $("copy").textContent = "Copied";
-    setTimeout(() => ($("copy").textContent = "Copy"), 1400);
-  };
+  // ---- quote, x link, caption ----
+  $("quote").textContent = "\u201C" + S.quote.text + "\u201D";
+  $("quote-by").textContent = S.quote.by || "";
+  $("x").href = "https://x.com/" + S.x;
+  $("x-handle").textContent = "@" + S.x;
+  $("cap").innerHTML = (S.caption || []).map((l) => `<span>${l}</span>`).join("");
 
   // ---- subtitles ----
   let shown = null;
@@ -150,7 +151,7 @@
 
   // ---- 2. shrink to a card ----
   async function toCard() {
-    sub.classList.add("rise");
+    sub.classList.remove("on");                   // the reel's subtitles end with the reel
     intro.classList.add("paper");
     stage.classList.add("card");
     await wait(1100);
@@ -195,9 +196,11 @@
     Object.assign(counter.style, { left: r.left + "px", top: r.top - 20 + "px" });
     counter.classList.add("on");
 
-    // construction lines behind the card: one new shape starts as each photo
-    // lands and takes 1.4s to draw, so they overlap and build up in order
-    const shapes = construction(r);
+    // the construction comes up quickly behind the card: every line starts within
+    // the first second, 45ms apart, so they overlap as they draw
+    const shapes = construction();
+    shapes.forEach((el, j) => setTimeout(() => (el.style.strokeDashoffset = 0), j * 45));
+    $("cap").classList.add("on");
     const n = Math.max(frames.length, 8);        // a short set loops
     const pad = (v) => String(v).padStart(2, "0");
     // starts slow, runs fast through the middle, slows again for the end
@@ -206,8 +209,6 @@
       const k = i % frames.length;
       box.replaceChildren(frames[k]);
       counter.textContent = `${pad(k + 1)} / ${pad(frames.length)}`;
-      const from = Math.floor((i * shapes.length) / n), to = Math.floor(((i + 1) * shapes.length) / n);
-      shapes.slice(from, to).forEach((el, j) => setTimeout(() => (el.style.strokeDashoffset = 0), j * 70));
       await wait(beat(i));
     }
     if (done) return;
@@ -216,17 +217,18 @@
     // hand off: lines pull back in order, the photo and its text ease away
     shapes.forEach((el, j) => setTimeout(() => { el.style.transitionDuration = ".8s"; el.style.strokeDashoffset = 1; }, j * 35));
     counter.classList.remove("on");
-    sub.classList.remove("on");
+    $("cap").classList.remove("on");
     stage.classList.add("out");
     await wait(1300);
     box.replaceChildren();
     $("fgrid").replaceChildren();
   }
 
-  // a golden-ratio construction laid over the screen and keyed to the card:
-  // rectangles first, then circles, then rules, then diagonals
-  function construction(c) {
-    const svg = $("fgrid"), W = innerWidth, H = innerHeight, PHI = 0.618;
+  // a golden-rectangle construction over the whole screen: the screen is cut at
+  // the golden ratio again and again, each cell gets its circle, then rules and
+  // diagonals run through. drawn in that order.
+  function construction() {
+    const svg = $("fgrid"), W = innerWidth, H = innerHeight;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     const out = [];
     const add = (tag, attrs) => {
@@ -236,26 +238,19 @@
       svg.appendChild(el);
       out.push(el);
     };
-    const rect = (x, y, w, h) => add("path", { d: `M${x} ${y}H${x + w}V${y + h}H${x}Z` });
+    const px = (v) => Math.round(v) + 0.5;
+    const rect = (x0, y0, x1, y1) => add("path", { d: `M${px(x0)} ${px(y0)}H${px(x1)}V${px(y1)}H${px(x0)}Z` });
     const line = (x1, y1, x2, y2) => add("path", { d: `M${x1} ${y1}L${x2} ${y2}` });
-    const circ = (cx, cy, rad) => add("circle", { cx, cy, r: rad });
-    const gx = Math.round(W * PHI), gy = Math.round(H * PHI);  // golden cuts of the screen
-    const cx = c.left + c.width / 2, cy = c.top + c.height / 2;
-
-    rect(0.5, 0.5, gx, H - 1);                     // the big square-ish field
-    rect(gx + 0.5, 0.5, W - gx - 1, gy);           // upper right
-    rect(gx + 0.5, gy + 0.5, (W - gx) * PHI, H - gy - 1);
-    circ(cx, cy, H / 2 - 1);                       // the card's own circle
-    circ(gx + (W - gx) / 2, gy / 2, Math.min(W - gx, gy) / 2);
-    circ(gx + ((W - gx) * PHI) / 2, gy + (H - gy) / 2, Math.min((W - gx) * PHI, H - gy) / 2);
-    line(c.left + 0.5, 0, c.left + 0.5, H);        // rules on the card's edges
-    line(c.right - 0.5, 0, c.right - 0.5, H);
-    line(0, c.top + 0.5, W, c.top + 0.5);
-    line(0, c.bottom - 0.5, W, c.bottom - 0.5);
-    const slope = c.height / c.width, far = Math.max(W, H) * 2;  // diagonals through its corners
-    line(cx - far, cy - far * slope, cx + far, cy + far * slope);
-    line(cx - far, cy + far * slope, cx + far, cy - far * slope);
-    line(gx, H, gx + (W - gx), 0);
+    const circ = (x0, y0, x1, y1) => add("circle", { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, r: Math.min(x1 - x0, y1 - y0) / 2 });
+    const a = W * 0.617, b = W * 0.773, c = W * 0.695;   // vertical cuts
+    const m = H * 0.625, n = H * 0.75;                    // horizontal cuts
+    const cells = [[0, 0, a, H], [a, 0, W, m], [b, m, W, H], [a, n, b, H], [a, m, c, n], [c, m, b, n]];
+    cells.forEach((r) => rect(...r));
+    circ(W * 0.305 - H / 2, 0, W * 0.305 + H / 2, H);     // the big one, a full screen high
+    cells.slice(1).forEach((r) => circ(...r));
+    line(px(W * 0.227), 0, px(W * 0.227), H); line(px(b), 0, px(b), H);
+    line(0, px(H * 0.25), W, px(H * 0.25)); line(0, px(n), W, px(n));
+    line(0, 0, W, H); line(0, H, W * 0.383, 0); line(a, H, W, 0);
     return out;
   }
 
@@ -311,14 +306,15 @@
 
     // ink the type onto the lines
     await inkName();
-    await wait(700);                              // let the finished name sit a moment
+    await wait(450);                              // let the finished title sit a moment
     guidesEl.classList.add("out");
     await wait(500);
   }
 
   // ---- 5. land on the page ----
-  // the big name is a title card for the intro only: it lifts away as the page arrives
-  function finish(instant) {
+  // the title was written in the middle of the screen; now it moves up to sit
+  // half cut at the top while the page arrives under it
+  function finish(instant, ink) {
     if (done && instant) return;
     done = true;
     try { localStorage.setItem("pg-seen", "1"); } catch (e) {}
@@ -327,9 +323,10 @@
     document.body.classList.remove("intro-on");
     document.body.classList.add("live");
     window.Fountain && window.Fountain.start($("fountain"));
-    if (instant) { nameEl.classList.add("off"); return; }
-    nameEl.classList.add("gone");
-    setTimeout(() => nameEl.classList.add("off"), 1200);
+    if (instant) nameEl.classList.add("still");     // no glide: it is simply there
+    nameEl.classList.remove("card");
+    if (ink) return inkName();
+    if (instant) nameEl.classList.add("instant", "set");
   }
 
   async function run() {
@@ -350,6 +347,7 @@
   const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   $("skip").onclick = () => finish(true);
-  if (calm || (seen && !force)) finish(true);
+  if (calm) finish(true);
+  else if (seen && !force) finish(true, true);
   else $("enter").onclick = run;
 })();

@@ -1,6 +1,17 @@
 // everything you'd want to swap lives here
 window.SITE = {
-  email: "hello@nithinaruswamy.com",
+  // the big title on the main screen
+  title: "Private Garden",
+
+  // the quote beside the fountain
+  quote: { text: "Good design is as little design as possible.", by: "Dieter Rams" },
+
+  // bottom-right link
+  x: "nithinaru",
+
+  // the small caption at the foot of the screen while the photos run. one string per line.
+  caption: ["People, places and machines that changed", "what we thought was possible."],
+
 
   // the 20s montage (music baked in). if this file is missing, a placeholder reel plays instead.
   video: "assets/intro.mp4",

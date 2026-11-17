@@ -130,15 +130,17 @@ window.Fountain = (() => {
 
   // ---------- the water ----------
   const G = 330;                                           // gravity, drawing units / s²
-  const RIMS = [                                           // where each bowl spills from
-    { y: 116, rx: 25, ry: 4.2, rate: 75, wait: 0.5 },
-    { y: 151, rx: 43, ry: 6.2, rate: 110, wait: 0.95 },
-    { y: 201, rx: 69, ry: 10, rate: 160, wait: 1.45 },
+  // each rim spills in separate streams (like a scalloped lip), not an even sheet
+  const RIMS = [
+    { y: 116, rx: 25, ry: 4.2, rate: 120, wait: 0.5, streams: 9 },
+    { y: 151, rx: 43, ry: 6.2, rate: 190, wait: 0.95, streams: 13 },
+    { y: 201, rx: 69, ry: 10, rate: 280, wait: 1.45, streams: 17 },
   ];
+  RIMS.forEach((r) => (r.at = Array.from({ length: r.streams }, (_, i) => ({ a: -1.4 + (2.8 * i) / (r.streams - 1), ph: rand(0, 6.3) }))));
   const POOLS = [                                          // where falling water can land
     { y: 116, rx: 26, ry: 4.5 }, { y: 151, rx: 44, ry: 6.5 }, { y: 201, rx: 70, ry: 10.5 }, { y: 298, rx: 136, ry: 26, basin: true },
   ];
-  const GROUND = 344, HAND = 15;
+  const BASIN = POOLS[3], GROUND = 346, HAND = 14;
 
   function water(wrap, startIn) {
     const cv = document.createElement("canvas");
@@ -156,47 +158,68 @@ window.Fountain = (() => {
     fit();
     addEventListener("resize", fit);
 
-    // the hand
-    const hand = { on: false, x: 0, y: 0, vx: 0, vy: 0, t: 0 };
+    // the hand: where it is, how fast it moves, how wet it is, where it last left a ring
+    const hand = { on: false, x: 0, y: 0, vx: 0, vy: 0, t: 0, show: 0, wet: 0, rx: 0, ry: 0 };
     let surge = 0;
     const toUnits = (e) => { box = cv.getBoundingClientRect(); return [(e.clientX - box.left - ox) / sc, (e.clientY - box.top - oy) / sc]; };
     wrap.addEventListener("pointermove", (e) => {
       const [x, y] = toUnits(e), now = performance.now(), dt = Math.max((now - hand.t) / 1000, 0.008);
-      if (hand.on) { hand.vx = (x - hand.x) / dt; hand.vy = (y - hand.y) / dt; }
+      if (hand.on) { hand.vx = hand.vx * 0.5 + ((x - hand.x) / dt) * 0.5; hand.vy = hand.vy * 0.5 + ((y - hand.y) / dt) * 0.5; }
       hand.x = x; hand.y = y; hand.t = now; hand.on = true;
     });
-    wrap.addEventListener("pointerleave", () => (hand.on = false));
+    const away = () => (hand.on = false);
+    wrap.addEventListener("pointerleave", away);
+    wrap.addEventListener("pointercancel", away);
+    wrap.addEventListener("pointerup", (e) => { if (e.pointerType !== "mouse") away(); });
     wrap.addEventListener("pointerdown", (e) => { const [x, y] = toUnits(e); hand.x = x; hand.y = y; hand.on = true; surge = 1; });
+    const inBasin = (x, y) => ((x - CX) / BASIN.rx) ** 2 + ((y - BASIN.y) / BASIN.ry) ** 2 < 1;
 
     const drops = [], rings = [];
-    const owed = [0, 0, 0, 0];                             // fractional drops waiting to be let go
-    const spawn = (x, y, vx, vy, d, spray) => drops.push({ x, y, vx, vy, d, spray, a: rand(0.55, 0.95) });
+    const owed = [0, 0, 0, 0, 0];                          // fractional drops waiting to be let go
+    const spawn = (x, y, vx, vy, d, spray) => drops.push({ x, y, vx, vy, d, spray, a: rand(0.5, 1) });
 
     function emit(t, dt) {
       const flow = (wait) => Math.min(1, Math.max(0, (t - wait) / 0.9));
-      owed[3] += 55 * flow(0) * (1 + surge * 1.5) * dt;
-      for (; owed[3] >= 1; owed[3]--)                      // the jet
-        spawn(CX + rand(-1.5, 1.5), 82, rand(-1, 1) * rand(5, 16) * (1 + surge), -rand(60, 90) * (1 + surge * 0.9), rand(-0.4, 0.7), false);
-      RIMS.forEach((r, i) => {                             // each rim, along its front edge
+      owed[3] += 85 * flow(0) * (1 + surge * 1.6) * dt;
+      for (; owed[3] >= 1; owed[3]--)                      // the jet: a tight plume that opens as it falls
+        spawn(CX + rand(-1, 1), 82, rand(-1, 1) * rand(3, 15) * (1 + surge), -rand(66, 96) * (1 + surge * 0.9), rand(-0.4, 0.7), false);
+      RIMS.forEach((r, i) => {
         owed[i] += r.rate * flow(r.wait) * (1 + surge * 0.5) * dt;
         for (; owed[i] >= 1; owed[i]--) {
-          const a = rand(-1.42, 1.42), s = Math.sin(a), c = Math.cos(a);
-          spawn(CX + r.rx * s, r.y + r.ry * c, s * rand(9, 23) + rand(-2, 2), rand(-7, 3), c, false);
+          let a;
+          if (Math.random() < 0.82) {                      // most water runs down one of the streams, which sway a little
+            const st = r.at[Math.floor(Math.random() * r.at.length)];
+            a = st.a + Math.sin(t * 0.6 + st.ph) * 0.05 + rand(-0.03, 0.03);
+          } else a = rand(-1.42, 1.42);                    // the rest is loose spill between them
+          const s = Math.sin(a), c = Math.cos(a);
+          spawn(CX + r.rx * s, r.y + r.ry * c, s * rand(11, 21) + rand(-1.5, 1.5), rand(-5, 2), c, false);
         }
       });
+      if (hand.wet > 0.02) {                               // a wet hand drips
+        owed[4] += hand.wet * 26 * dt;
+        for (; owed[4] >= 1; owed[4]--) spawn(hand.x + rand(-HAND, HAND) * 0.8, hand.y + HAND * rand(0.6, 1), hand.vx * 0.2 + rand(-4, 4), rand(0, 12), rand(0, 1), false);
+      }
     }
 
     function step(dt) {
+      const speed = Math.hypot(hand.vx, hand.vy);
       for (let i = drops.length - 1; i >= 0; i--) {
         const p = drops[i], py = p.y;
         p.vy += G * dt; p.x += p.vx * dt; p.y += p.vy * dt;
-        if (hand.on) {                                     // break on the hand
+        if (hand.on) {
           const dx = p.x - hand.x, dy = p.y - hand.y, r2 = dx * dx + dy * dy;
-          if (r2 < HAND * HAND) {
+          if (r2 < HAND * HAND) {                          // water breaks on the hand and runs off round it
             const r = Math.sqrt(r2) || 0.01, nx = dx / r, ny = dy / r, vn = p.vx * nx + p.vy * ny;
             p.x = hand.x + nx * HAND; p.y = hand.y + ny * HAND;
-            if (vn < 0) { p.vx -= 1.32 * vn * nx; p.vy -= 1.32 * vn * ny; }
-            p.vx += hand.vx * 0.3 + rand(-9, 9); p.vy += hand.vy * 0.3 + rand(-5, 3);
+            if (vn < 0) {
+              p.vx -= 1.22 * vn * nx; p.vy -= 1.22 * vn * ny;
+              hand.wet = Math.min(1, hand.wet + 0.02);
+              if (!p.spray && Math.random() < 0.3) spawn(p.x, p.y, nx * rand(18, 46) + rand(-12, 12), -rand(8, 40), p.d, true);
+            }
+            p.vx += hand.vx * 0.25 + rand(-5, 5); p.vy += hand.vy * 0.25;
+          } else if (speed > 50 && r2 < 3600) {            // a quick sweep drags the water near it along
+            const pull = (1 - Math.sqrt(r2) / 60) * dt * 2.4;
+            p.vx += hand.vx * pull; p.vy += hand.vy * pull * 0.5;
           }
         }
         let landed = null;
@@ -208,21 +231,27 @@ window.Fountain = (() => {
         }
         if (landed || p.y > GROUND) {
           if (landed && !p.spray) {
-            const n = landed.basin ? (Math.random() < 0.8 ? 1 : 2) : Math.random() < 0.45 ? 1 : 0;
-            for (let k = 0; k < n; k++) spawn(p.x, p.y - 0.5, rand(-17, 17), -rand(14, 42), p.d, true);
-            if (landed.basin && Math.random() < 0.05) rings.push({ x: p.x, y: p.y, age: 0 });
+            const n = landed.basin ? (Math.random() < 0.75 ? 1 : 2) : Math.random() < 0.4 ? 1 : 0;
+            for (let k = 0; k < n; k++) spawn(p.x, p.y - 0.5, rand(-18, 18), -rand(14, 44), p.d, true);
+            if (Math.random() < (landed.basin ? 0.06 : 0.025)) rings.push({ x: p.x, y: p.y, age: 0, max: landed.basin ? 24 : 7 });
           }
           drops[i] = drops[drops.length - 1]; drops.pop();
         }
       }
+      // dragging the hand across the basin leaves a wake
+      if (hand.on && inBasin(hand.x, hand.y) && Math.hypot(hand.x - hand.rx, hand.y - hand.ry) > 7) {
+        rings.push({ x: hand.x, y: hand.y, age: 0, max: 20 });
+        hand.rx = hand.x; hand.ry = hand.y;
+      }
       for (let i = rings.length - 1; i >= 0; i--) if ((rings[i].age += dt) > 1.1) rings.splice(i, 1);
-      hand.vx *= 0.8; hand.vy *= 0.8;
+      hand.vx *= 0.86; hand.vy *= 0.86;
+      hand.wet = Math.max(0, hand.wet - dt * 0.55);
       surge = Math.max(0, surge - dt / 1.3);
     }
 
     // grass at the foot of the basin
     const blades = [];
-    for (const [x0, x1, n] of [[36, 68, 10], [332, 364, 10], [78, 92, 3], [308, 322, 3]])
+    for (const [x0, x1, n] of [[28, 60, 11], [340, 372, 11], [70, 86, 3], [314, 330, 3]])
       for (let i = 0; i < n; i++) blades.push({ x: rand(x0, x1), h: rand(9, 27), lean: rand(-5, 5), ph: rand(0, 6.3), push: 0 });
 
     function draw(t) {
@@ -230,31 +259,34 @@ window.Fountain = (() => {
       ctx.clearRect(0, 0, cv.width, cv.height);
       ctx.setTransform(sc * dpr, 0, 0, sc * dpr, ox * dpr, oy * dpr);
       ctx.lineCap = "round";
-      // drops are drawn as short strokes along their path, like pencil dashes
-      for (const [lo, hi, w] of [[0, 0.75, 0.6], [0.75, 1, 0.85]]) {
+      // each drop is a stroke along its own path; fast drops leave longer strokes,
+      // so a stream reads as a thread of water rather than dots
+      for (const [lo, hi, w, alpha] of [[0, 0.7, 0.5, 0.55], [0.7, 0.9, 0.65, 0.78], [0.9, 2, 0.85, 0.92]]) {
         ctx.beginPath();
         for (const p of drops) {
           if (p.a < lo || p.a >= hi) continue;
-          const k = p.spray ? 0.012 : 0.024;
+          const k = p.spray ? 0.013 : 0.034;
           ctx.moveTo(p.x - p.vx * k, p.y - p.vy * k); ctx.lineTo(p.x, p.y);
         }
-        ctx.lineWidth = w; ctx.strokeStyle = `rgba(30,30,30,${lo ? 0.9 : 0.62})`; ctx.stroke();
+        ctx.lineWidth = w; ctx.strokeStyle = `rgba(30,30,30,${alpha})`; ctx.stroke();
       }
       for (const r of rings) {
-        const rx = 3 + r.age * 24;
+        const k = r.age / 1.1, rx = 2 + k * r.max;
         ctx.beginPath(); ctx.ellipse(r.x, r.y, rx, rx * 0.2, 0, 0, 6.2832);
-        ctx.lineWidth = 0.5; ctx.strokeStyle = `rgba(30,30,30,${0.5 * (1 - r.age / 1.1)})`; ctx.stroke();
+        ctx.lineWidth = 0.5; ctx.strokeStyle = `rgba(30,30,30,${0.55 * (1 - k)})`; ctx.stroke();
       }
       const grow = Math.min(1, Math.max(0, t / 1.2));
       ctx.beginPath();
       for (const b of blades) {
         let want = 0;
-        if (hand.on && hand.y > 285) { const dx = b.x - hand.x; if (Math.abs(dx) < 46) want = Math.sign(dx || 1) * (1 - Math.abs(dx) / 46) * b.h * 0.55; }
+        if (hand.on && hand.y > 280) { const dx = b.x - hand.x; if (Math.abs(dx) < 50) want = Math.sign(dx || 1) * (1 - Math.abs(dx) / 50) * b.h * 0.6; }
+        want += Math.max(-1, Math.min(1, hand.vx / 300)) * b.h * 0.25 * hand.show;   // and it bends in the draught of a sweep
         b.push += (want - b.push) * 0.1;
         const h = b.h * grow, tip = b.lean + Math.sin(t * 1.25 + b.ph) * b.h * 0.08 + b.push;
-        ctx.moveTo(b.x, 342); ctx.quadraticCurveTo(b.x + tip * 0.3, 342 - h * 0.62, b.x + tip, 342 - h);
+        ctx.moveTo(b.x, 344); ctx.quadraticCurveTo(b.x + tip * 0.3, 344 - h * 0.62, b.x + tip, 344 - h);
       }
       ctx.lineWidth = 0.65; ctx.strokeStyle = "rgba(30,30,30,.85)"; ctx.stroke();
+      hand.show += ((hand.on ? 1 : 0) - hand.show) * 0.15;   // eases the grass in and out of the draught
     }
 
     // run only while the fountain is on screen and the tab is in front
