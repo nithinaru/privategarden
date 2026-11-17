@@ -113,7 +113,7 @@
   $("bio").innerHTML = (S.bio || []).map((l) => `<span>${l
     .replace(/\[(.+?)\]\((.+?)\)/g, '<a class="hl-me" href="$2" target="_blank" rel="noopener">$1</a>')
     .replace(/\*\*(.+?)\*\*/g, '<b class="hl-me">$1</b>')}</span>`).join("");
-  $("about").href = S.about;
+  $("about").href = $("by").href = S.about;   // both go to the main site
 
   // the colour sweep (About and the bold names): the label is doubled, and the copy
   // on top carries a band of colour that crosses it from left to right on hover
