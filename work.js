@@ -34,8 +34,8 @@
     const ratio = it.ratio || 16 / 9;
     return { el: a, ratio, size: 0.55 + rnd() * 0.45, fx: rnd(), fy: rnd(), jit: rnd(), d: Math.abs(i - MID) };
   });
-  // depth: how fast a card travels as the field drifts (1 = the pace of the page)
-  cards.forEach((c) => { c.sp = 0.6 + ((c.size - 0.55) / 0.45) * 0.9; c.near = 100 + Math.round(c.size * 100); });
+  // depth: how far a card travels as the field drifts (1 = the nearest, 0.25 = the furthest)
+  cards.forEach((c) => { c.sp = 0.25 + ((c.size - 0.55) / 0.45) * 0.75; c.near = 100 + Math.round(c.size * 100); });
   // nearest the middle shows first and sits on top
   const order = cards.map((c, i) => i).sort((a, b) => cards[a].d - cards[b].d);
   order.forEach((ci, n) => { cards[ci].rank = n; cards[ci].el.style.zIndex = 300 - n; });
@@ -46,7 +46,12 @@
     unit = Math.min(Math.max(W * 0.14, 110), 190);   // widest card in the field
     stackW = Math.min(Math.max(W * 0.085, 70), 110); // every card in the stack
     const cols = W < 700 ? 3 : 6, rows = Math.ceil(N / cols);
-    const cellW = (W * 0.84) / cols, cellH = Math.max(unit * 1.15, H * 0.34);
+    const cellW = (W * 0.84) / cols, cellH = Math.max(unit * (cols === 3 ? 0.9 : 1.1), H * (cols === 3 ? 0.125 : 0.24));
+    // a field that fits the screen is centred on it; a taller one (a phone) starts
+    // near the top and is carried up as you scroll
+    const tall = rows * cellH > H * 0.8;
+    const y0 = tall ? -H * 0.3 : -((rows - 1) / 2) * cellH;
+    amp = H * 0.15;
     cards.forEach((c, i) => {
       c.w = unit * c.size; c.h = c.w / c.ratio;
       c.el.style.width = c.w + "px"; c.el.style.height = c.h + "px";
@@ -56,16 +61,15 @@
       // field: a loose grid, jittered, starting above centre and running below the screen
       const col = i % cols, row = Math.floor(i / cols);
       c.tx = (col - (cols - 1) / 2) * cellW + (c.fx - 0.5) * cellW * 0.3;
-      c.ty = -H * 0.3 + row * cellH + (c.fy - 0.5) * cellH * 0.3 + (col % 2) * cellH * 0.3;
+      c.ty = y0 + row * cellH + (c.fy - 0.5) * cellH * 0.3 + ((col % 2) - 0.5) * cellH * 0.3;
     });
     // the field drifts up only until its last row rests near the bottom of the screen,
     // so the section ends with photos still showing and the footer follows straight on
     const lowest = Math.max(...cards.map((c) => c.ty + c.h / 2 + 34));
-    drift = Math.max(0, lowest - (H / 2 - 56));
+    drift = tall ? Math.max(0, lowest - (H / 2 - 56)) : 0;
     // scroll length: a fixed stretch for the stack and the burst, then as long as the drift needs
     intro = H * 2.3;
-    // the depth needs room to show: the near cards get most of a screen of extra travel,
-    // and the section is long enough to scroll through it
+    // the depth needs room to show: the drift is spread over most of a screen of scrolling
     reach = H * 0.9;
     travel = Math.max(drift, reach);
     sec.style.height = intro + travel * 1.15 + H + "px";
@@ -74,12 +78,13 @@
     const k = Math.min(1, W / 1100);
     nudge = W < 700 ? 0 : ((wordL.offsetWidth - wordR.offsetWidth) / 2) * k;
   }
-  let drift = 0, nudge = 0, intro = 1, reach = 0, travel = 0;
+  let drift = 0, nudge = 0, intro = 1, reach = 0, travel = 0, amp = 0;
 
   const clamp = (v) => Math.min(1, Math.max(0, v));
   const span = (p, a, b) => clamp((p - a) / (b - a));
   const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   const out = (t) => 1 - Math.pow(1 - t, 3);
+  const glide = (t) => (1 - Math.cos(Math.PI * t)) / 2;   // a soft start and stop, even through the middle
 
   // s = pixels scrolled into the section
   function render(s) {
@@ -98,16 +103,17 @@
       wordR.style.transform = `translate(${gap + nudge}px, -50%) scale(${k})`;
     }
     wordL.style.opacity = wordR.style.opacity = wordA;
-    const q = ease(clamp((s - intro * 0.86) / (intro * 0.14 + travel * 1.15)));   // how far through the drift
+    const q = glide(clamp((s - intro * 0.86) / (intro * 0.14 + travel * 1.15)));   // how far through the drift
     const up = q * drift;
 
     for (const c of cards) {
       const born = 0.02 + (c.rank / N) * 0.24;
       const pop = out(span(p, born, born + 0.035));
       const fly = ease(span(p, 0.3 + c.jit * 0.06, 0.46 + c.jit * 0.06));
-      // every card ends where the grid puts it; the near ones start further down and
-      // cover more ground on the way, the far ones start higher and cover less
-      const x = c.sx + nudge * (1 - fly) + (c.tx - c.sx) * fly, y = c.sy + (c.ty + (c.sp - 1) * reach * (1 - q) - c.sy) * fly - up * fly;
+      // each card rises through its place in the grid: it starts below it and ends as
+      // far above it. the near ones cover a third of the screen, the far ones very little,
+      // so near ones pass over far ones and nothing leaves the screen
+      const x = c.sx + nudge * (1 - fly) + (c.tx - c.sx) * fly, y = c.sy + (c.ty + c.sp * amp * (1 - 2 * q) - c.sy) * fly - up * fly;
       const s = (c.ss * (0.55 + 0.45 * pop)) * (1 - fly) + fly;
       c.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${s.toFixed(4)})`;
       c.el.style.opacity = pop;
