@@ -161,7 +161,7 @@ window.Fountain = (() => {
   const RIMS = [
     { y: 116, rx: 25, ry: 4.2, rate: 120, wait: 0.5, streams: 9 },
     { y: 151, rx: 43, ry: 6.2, rate: 190, wait: 0.95, streams: 13 },
-    { y: 201, rx: 69, ry: 10, rate: 280, wait: 1.45, streams: 17 },
+    { y: 201, rx: 69, ry: 10, rate: 95, wait: 1.45, streams: 11 },
   ];
   RIMS.forEach((r) => (r.at = Array.from({ length: r.streams }, (_, i) => ({ a: -1.4 + (2.8 * i) / (r.streams - 1), ph: rand(0, 6.3) }))));
   const POOLS = [                                          // where falling water can land
@@ -258,7 +258,7 @@ window.Fountain = (() => {
         }
         if (landed || p.y > GROUND) {
           if (landed && !p.spray) {
-            const n = landed.basin ? (Math.random() < 0.75 ? 1 : 2) : Math.random() < 0.4 ? 1 : 0;
+            const n = Math.random() < (landed.basin ? 0.55 : 0.4) ? 1 : 0;
             for (let k = 0; k < n; k++) spawn(p.x, p.y - 0.5, rand(-18, 18), -rand(14, 44), p.d, true);
             if (Math.random() < (landed.basin ? 0.06 : 0.025)) rings.push({ x: p.x, y: p.y, age: 0, max: landed.basin ? 24 : 7 });
           }

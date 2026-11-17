@@ -323,9 +323,6 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
   position: relative; display: flex; flex-direction: column; justify-content: flex-end;
   padding: 9vh 3vw 0; overflow: hidden;
 }
-.end-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; letter-spacing: .02em; margin-bottom: 1.4rem; }
-.end-row > span:last-child { color: #8a8a8a; }
-.end-row a { font-weight: 600; color: inherit; text-decoration: none; }
 /* the two words are almost the colour of the page. a hard light edge up and to the left
    and a hard dark edge down and to the right make them read as pressed out of the paper. */
 .end-big {
@@ -356,7 +353,6 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
   .bio p span { white-space: normal; }
   .replay { left: 6vw; } .x { right: 6vw; }
   .end { padding: 7vh 6vw 0; }
-  .end-row { font-size: 12px; }
-  .end-big { margin: 0 -6vw; }
+    .end-big { margin: 0 -6vw; }
 }
 
