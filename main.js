@@ -69,7 +69,7 @@
   new IntersectionObserver(([e]) => { if (e.isIntersecting) endBig.classList.add("in"); }, { threshold: 0.35 }).observe(endBig);
 
   // the name is stencilled first: a pen line traces the outline of each letter, one
-  // after the next. then the black letters rise into their outlines, and the pen
+  // after the next. then the black ink is written into the outlines, and the pen
   // lines fade. (the outlines are svg text laid exactly over the real name.)
   async function inkName() {
     await fitName();
@@ -90,8 +90,8 @@
     });
     document.body.appendChild(svg);
     await wait((chs.length - 1) * 80 + 800);        // the stencil is drawn
-    nameEl.classList.add("set");                    // the letters rise into it, 70ms apart
-    await wait((chs.length - 1) * 70 + 500);
+    nameEl.classList.add("set");                    // the ink is written into it, 110ms apart
+    await wait((chs.length - 1) * 110 + 850);
     svg.classList.add("out");
     await wait(500);
     nameEl.classList.add("instant");
