@@ -23,8 +23,25 @@
     const size = (fs * (innerWidth * 0.94)) / w;
     nameEl.style.fontSize = size + "px";
     $("site").style.setProperty("--title", size + "px");   // the layout below makes room for it
+    placeSides();
   }
   addEventListener("resize", () => fitName());
+
+  // the quote and the three lines mirror each other across the fountain: the quote is
+  // centred as far above the middle bowl's rim as the lines are centred below it, and
+  // each sits the same distance in from its edge of the page. (viewBox numbers below
+  // must match the svg: the middle rim is at y=150, and the blocks sit 48 either side.)
+  function placeSides() {
+    const q = document.querySelector(".quote"), b = document.querySelector(".bio");
+    if (innerWidth <= 1080) { q.style.top = b.style.top = ""; return; }
+    const site = $("site").getBoundingClientRect(), g = document.querySelector(".garden").getBoundingClientRect();
+    const [vx, vy, vw, vh] = $("fountain").getAttribute("viewBox").split(" ").map(Number);
+    const sc = Math.min(g.width / vw, g.height / vh);
+    const y = (u) => g.top - site.top + (g.height - vh * sc) + (u - vy) * sc;   // drawing units to page px
+    q.style.top = y(150 - 48) - q.offsetHeight / 2 + "px";
+    b.style.top = y(150 + 48) - b.offsetHeight / 2 + "px";
+  }
+  addEventListener("resize", placeSides);
 
   // the name is written, not shown: for each letter a pen line traces the
   // outline, then ink follows it across from left to right and the pen line

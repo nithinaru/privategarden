@@ -8,7 +8,7 @@
 //    it. click (or tap) and the jet surges. the grass leans away from you.
 window.Fountain = (() => {
   const NS = "http://www.w3.org/2000/svg";
-  const VB = { x: 24, y: 50, w: 352, h: 330 };   // must match the svg viewBox
+  const VB = { x: 12, y: 50, w: 376, h: 334 };   // must match the svg viewBox
   const CX = 200;
   const rand = (a, b) => a + Math.random() * (b - a);
   const el = (tag, attrs = {}, parent) => {
@@ -42,6 +42,27 @@ window.Fountain = (() => {
     }
     return out;
   };
+  // cut joints across the front of the step
+  const joints = () => {
+    const out = [];
+    for (let k = -4; k <= 4; k++) {
+      const a = (k * 17 * Math.PI) / 180, x = CX + 168 * Math.sin(a), y = 324 + 38 * Math.cos(a);
+      out.push(`M${x.toFixed(1)},${(y + 0.8).toFixed(1)} L${x.toFixed(1)},${(y + 6.4).toFixed(1)}`);
+    }
+    return out;
+  };
+  // the shadow on the ground: rows of short strokes following the step, fewer further out
+  const ground = () => {
+    const out = [];
+    for (let row = 0; row < 2; row++) {
+      const rx = 171 + row * 6, ry = 39.5 + row * 2.6, span = 1.05 - row * 0.4;
+      for (let a = -span; a < span; a += 0.34) {
+        const a1 = a + 0.22;
+        out.push(`M${(CX + rx * Math.sin(a)).toFixed(1)},${(334 + ry * Math.cos(a)).toFixed(1)} L${(CX + rx * Math.sin(a1)).toFixed(1)},${(334 + ry * Math.cos(a1)).toFixed(1)}`);
+      }
+    }
+    return out;
+  };
   // short slanted pencil strokes; clipped to a shape by the caller
   const strokes = (x0, x1, y0, y1, gap) => {
     const out = [];
@@ -51,15 +72,21 @@ window.Fountain = (() => {
 
   // drawn in this order. `d` is one stroke or a list drawn as one run.
   const DRAWING = [
-    // basin
+    // basin: coping, fluted wall, skirting
     { c: "f-line", d: ring(296, 152, 34) },
     { c: "f-line", d: ring(297, 140, 28) },
+    { c: "f-detail", d: front(300, 152, 34) },
     { c: "f-line", d: ["M48,296 L48,322", "M352,296 L352,322"] },
     { c: "f-line", d: front(322, 152, 34) },
-    { c: "f-line", d: [front(325, 158, 36), "M42,325 L42,332", "M358,325 L358,332", front(332, 158, 36)] },
+    { c: "f-detail", d: front(318, 152, 34) },
     { c: "f-detail", d: flutes() },
     { c: "f-shade", d: strokes(262, 352, 300, 356, 3.4), clip: "M48,296 A152,34 0 0 0 352,296 L352,322 A152,34 0 0 1 48,322 Z" },
-    { c: "f-detail", d: ["M74,341 C130,349 270,349 326,341", "M100,347 C150,352 250,352 300,347", "M150,352 C180,354 220,354 250,352"] },
+    // the stone step it stands on: a wide low slab with cut joints
+    { c: "f-line", d: [front(324, 168, 38), "M32,324 L32,331", "M368,324 L368,331", front(331, 168, 38)] },
+    { c: "f-detail", d: joints() },
+    { c: "f-shade", d: strokes(286, 372, 326, 372, 3), clip: "M32,324 A168,38 0 0 0 368,324 L368,331 A168,38 0 0 1 32,331 Z" },
+    // where it meets the ground: short strokes that thin out away from the stone
+    { c: "f-shade", d: ground() },
     // pedestal
     { c: "f-line", d: ["M186,300 C183,290 192,285 191,274 C190,262 196,256 195,241", "M214,300 C217,290 208,285 209,274 C210,262 204,256 205,241"] },
     { c: "f-detail", d: ["M184,300 Q200,306 216,300", "M190.5,283 Q200,287 209.5,283", "M190.5,279 Q200,283 209.5,279", "M193.5,259 Q200,262 206.5,259"] },
@@ -140,7 +167,7 @@ window.Fountain = (() => {
   const POOLS = [                                          // where falling water can land
     { y: 116, rx: 26, ry: 4.5 }, { y: 151, rx: 44, ry: 6.5 }, { y: 201, rx: 70, ry: 10.5 }, { y: 298, rx: 136, ry: 26, basin: true },
   ];
-  const BASIN = POOLS[3], GROUND = 346, HAND = 14;
+  const BASIN = POOLS[3], GROUND = 372, HAND = 14;
 
   function water(wrap, startIn) {
     const cv = document.createElement("canvas");
@@ -249,10 +276,21 @@ window.Fountain = (() => {
       surge = Math.max(0, surge - dt / 1.3);
     }
 
-    // grass at the foot of the basin
+    // grass: tufts rooted along the foot of the step. tall clumps at the sides,
+    // short ones across the front, each a fan of curved blades; a few carry a daisy.
     const blades = [];
-    for (const [x0, x1, n] of [[28, 60, 11], [340, 372, 11], [70, 86, 3], [314, 330, 3]])
-      for (let i = 0; i < n; i++) blades.push({ x: rand(x0, x1), h: rand(9, 27), lean: rand(-5, 5), ph: rand(0, 6.3), push: 0 });
+    const tuft = (a, n, H, spread) => {
+      const rx = 173, ry = 40, x = CX + rx * Math.sin(a), y = 333 + ry * Math.cos(a), out = Math.sign(a) * 0.25;
+      for (let i = 0; i < n; i++) {
+        const u = n > 1 ? i / (n - 1) - 0.5 : 0;
+        blades.push({ x: x + u * 5 + rand(-1, 1), y: y + rand(-0.8, 0.8), h: H * rand(0.5, 1), ang: out + u * spread + rand(-0.12, 0.12), ph: rand(0, 6.3), push: 0, bloom: Math.random() < 0.07 });
+      }
+    };
+    for (const side of [-1, 1]) {
+      tuft(side * 1.5, 8, 30, 1.2); tuft(side * 1.34, 9, 26, 1.1); tuft(side * 1.17, 7, 20, 1.0);   // the big clumps at each side
+      tuft(side * 0.95, 5, 13, 0.9); tuft(side * 0.62, 4, 9, 0.9); tuft(side * 0.3, 3, 7, 0.8);      // thinning toward the front
+    }
+    tuft(0.04, 3, 6, 0.9);
 
     function draw(t) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -276,16 +314,23 @@ window.Fountain = (() => {
         ctx.lineWidth = 0.5; ctx.strokeStyle = `rgba(30,30,30,${0.55 * (1 - k)})`; ctx.stroke();
       }
       const grow = Math.min(1, Math.max(0, t / 1.2));
+      const draught = Math.max(-1, Math.min(1, hand.vx / 300)) * hand.show;
+      const blooms = [];
       ctx.beginPath();
       for (const b of blades) {
-        let want = 0;
-        if (hand.on && hand.y > 280) { const dx = b.x - hand.x; if (Math.abs(dx) < 50) want = Math.sign(dx || 1) * (1 - Math.abs(dx) / 50) * b.h * 0.6; }
-        want += Math.max(-1, Math.min(1, hand.vx / 300)) * b.h * 0.25 * hand.show;   // and it bends in the draught of a sweep
-        b.push += (want - b.push) * 0.1;
-        const h = b.h * grow, tip = b.lean + Math.sin(t * 1.25 + b.ph) * b.h * 0.08 + b.push;
-        ctx.moveTo(b.x, 344); ctx.quadraticCurveTo(b.x + tip * 0.3, 344 - h * 0.62, b.x + tip, 344 - h);
+        let want = draught * 0.35;                         // bends in the draught of a sweep
+        if (hand.on && hand.y > 270) { const dx = b.x - hand.x; if (Math.abs(dx) < 50) want += Math.sign(dx || 1) * (1 - Math.abs(dx) / 50) * 0.7; }
+        b.push += (want - b.push) * 0.1;                   // and leans away from the hand
+        const h = b.h * grow, ang = b.ang + Math.sin(t * 1.2 + b.ph) * 0.07 + b.push;
+        const tx = b.x + Math.sin(ang) * h, ty = b.y - Math.cos(ang) * h;
+        ctx.moveTo(b.x, b.y);
+        ctx.quadraticCurveTo(b.x + Math.sin(b.ang * 0.3) * h * 0.2, b.y - h * 0.62, tx, ty);
+        if (b.bloom && grow > 0.9) blooms.push([tx, ty]);
       }
-      ctx.lineWidth = 0.65; ctx.strokeStyle = "rgba(30,30,30,.85)"; ctx.stroke();
+      ctx.lineWidth = 0.6; ctx.strokeStyle = "rgba(30,30,30,.82)"; ctx.stroke();
+      ctx.beginPath();
+      for (const [x, y] of blooms) { ctx.moveTo(x + 1.5, y - 0.6); ctx.arc(x, y - 0.6, 1.5, 0, 6.2832); }
+      ctx.lineWidth = 0.5; ctx.stroke();
       hand.show += ((hand.on ? 1 : 0) - hand.show) * 0.15;   // eases the grass in and out of the draught
     }
 
