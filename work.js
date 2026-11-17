@@ -57,20 +57,28 @@
       c.tx = (col - (cols - 1) / 2) * cellW + (c.fx - 0.5) * cellW * 0.3;
       c.ty = -H * 0.3 + row * cellH + (c.fy - 0.5) * cellH * 0.3 + (col % 2) * cellH * 0.3;
     });
-    drift = rows * cellH + H * 0.5;
+    // the field drifts up only until its last row rests near the bottom of the screen,
+    // so the section ends with photos still showing and the footer follows straight on
+    const lowest = Math.max(...cards.map((c) => c.ty + c.h / 2 + 34));
+    drift = Math.max(0, lowest - (H / 2 - 56));
+    // scroll length: a fixed stretch for the stack and the burst, then as long as the drift needs
+    intro = H * 2.3;
+    sec.style.height = intro + drift * 1.15 + H + "px";
     // the two phrases are different lengths, so the group is nudged sideways until
     // phrase + stack + phrase sits in the middle of the screen as one line
     const k = Math.min(1, W / 1100);
     nudge = ((wordL.offsetWidth - wordR.offsetWidth) / 2) * k;
   }
-  let drift = 0, nudge = 0;
+  let drift = 0, nudge = 0, intro = 1;
 
   const clamp = (v) => Math.min(1, Math.max(0, v));
   const span = (p, a, b) => clamp((p - a) / (b - a));
   const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   const out = (t) => 1 - Math.pow(1 - t, 3);
 
-  function render(p) {
+  // s = pixels scrolled into the section
+  function render(s) {
+    const p = clamp(s / intro) * 0.52;            // the stack, fade and burst play over the first stretch
     const grown = out(span(p, 0, 0.26));
     const gap = 14 + grown * (stackW * 0.5 + N * stackW * 0.04 + 22);
     const wordA = 1 - span(p, 0.22, 0.36);
@@ -78,7 +86,7 @@
     wordL.style.transform = `translate(calc(-100% - ${gap - nudge}px), -50%) scale(${k})`;
     wordR.style.transform = `translate(${gap + nudge}px, -50%) scale(${k})`;
     wordL.style.opacity = wordR.style.opacity = wordA;
-    const up = ease(span(p, 0.45, 1)) * drift;
+    const up = ease(clamp((s - intro * 0.86) / (intro * 0.14 + drift * 1.15))) * drift;
 
     for (const c of cards) {
       const born = 0.02 + (c.rank / N) * 0.24;
@@ -96,13 +104,13 @@
   let target = 0, shown = -1, raf = 0;
   function measure() {
     const r = sec.getBoundingClientRect();
-    target = clamp(-r.top / (r.height - innerHeight));
+    target = Math.min(Math.max(-r.top, 0), r.height - innerHeight);
     if (!raf) raf = requestAnimationFrame(tick);
   }
   function tick() {
     raf = 0;
     const next = shown < 0 ? target : shown + (target - shown) * 0.14;
-    shown = Math.abs(next - target) < 0.0004 ? target : next;
+    shown = Math.abs(next - target) < 0.4 ? target : next;
     render(shown);
     if (shown !== target) raf = requestAnimationFrame(tick);
   }

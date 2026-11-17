@@ -273,7 +273,7 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
 #fountain .f-shade  { stroke-width: .42; stroke: #4a4a4a; }
 
 /* ---------- work: pinned stage on a tall scroll track ---------- */
-.work { position: relative; height: 520svh; --blank: #f1f1ef; }
+.work { position: relative; height: 420svh; --blank: #f1f1ef; }   /* work.js sets the real height */
 .work-rails { position: absolute; inset: 0 3vw; pointer-events: none; }
 .work-rails::before, .work-rails::after {
   content: ""; position: absolute; top: 0; bottom: 0; width: 1px;
@@ -325,8 +325,8 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
 
 /* ---------- footer ---------- */
 .end {
-  position: relative; min-height: 58svh; display: flex; flex-direction: column; justify-content: flex-end;
-  padding: 0 3vw; overflow: hidden;
+  position: relative; display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 9vh 3vw 0; overflow: hidden;
 }
 .end-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; letter-spacing: .02em; margin-bottom: 1.4rem; }
 .end-row > span:last-child { color: #8a8a8a; }
@@ -360,7 +360,7 @@ body.live .under, body.live .garden, body.live .quote, body.live .bio, body.live
   .bio { position: static; padding: 0 8vw; margin: 2rem 0 0; text-align: center; }
   .bio p span { white-space: normal; }
   .replay { left: 6vw; } .x { right: 6vw; }
-  .end { padding: 0 6vw; min-height: 46svh; }
+  .end { padding: 7vh 6vw 0; }
   .end-row { font-size: 12px; }
   .end-big { margin: 0 -6vw; }
 }
