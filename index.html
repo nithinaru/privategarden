@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nithin Aruswamy — Studio</title>
+  <meta name="description" content="Design can save the world. Private Garden, coming soon.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,400&family=Instrument+Serif:ital@1&family=Fraunces:opsz,wght@9..144,900&family=Pinyon+Script&family=Silkscreen&family=IBM+Plex+Mono&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="intro-on">
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- intro: reel -> card -> flicker -> ruler lines -> name -->
+  <section id="intro" aria-hidden="true">
+    <button id="enter" class="gate">enter<span>sound on</span></button>
+    <div id="stage" class="stage">
+      <video id="reel" playsinline preload="auto"></video>
+      <div id="placeholder" class="placeholder"></div>
+      <div id="flicker" class="flicker"></div>
+    </div>
+    <p id="sub" class="sub"></p>
+    <svg id="guides" class="guides"></svg>
+    <button id="skip" class="skip">skip</button>
+  </section>
+
+  <main id="site">
+    <h1 id="name" class="name" aria-label="Nithin Aruswamy"></h1>
+
+    <div class="hero">
+      <div class="left">
+        <svg id="fountain" viewBox="0 0 400 400" role="img" aria-label="A fountain, drawn by hand"></svg>
+      </div>
+      <div class="right">
+        <p class="line">Design can<br>save the world.</p>
+        <p class="pg"><em>Private Garden</em> — coming soon.</p>
+        <p class="mail"><span id="email"></span><button id="copy">Copy</button></p>
+        <nav class="links">
+          <a href="https://travel.nithinaruswamy.com">Travel</a>
+          <a href="?intro">Replay intro</a>
+        </nav>
+      </div>
+    </div>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="fountain.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
