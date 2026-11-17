@@ -145,20 +145,26 @@
   // the film opens with its sound on. a tag rides beside the cursor and says which way
   // the sound is set; a click anywhere on the film switches it. the tag is only there
   // while the cursor is moving, and goes when it rests or leaves. (a browser that will
-  // not start sound unasked starts the film silent, with the tag reading "audio off".)
+  // not start sound unasked starts the film silent, and the tag asks for a click.)
+  // a touch screen has no cursor: there the tag rests at the foot of the screen, asks
+  // for a tap while the film is silent, and shows for a moment after each tap.
   const tag = $("tag"), tagText = tag.querySelector("span"), REST = 1800;
-  let sound = true, filming = false, idleT = 0;
+  const touch = matchMedia("(hover: none)").matches;
+  if (touch) tag.classList.add("rest");
+  let sound = true, filming = false, idleT = 0, asked = false;   // asked = silent only because the browser refused
   function setSound(on) {
     sound = on;
     reel.muted = !on;
     if (on) reel.volume = 1;
-    tagText.textContent = on ? "Audio on" : "Audio off";
+    tagText.textContent = on ? "Audio on" : asked ? (touch ? "Tap for audio" : "Click for audio") : "Audio off";
     tag.classList.toggle("off", !on);
   }
   function showTag(x, y) {
     if (!filming) return;
-    const tx = Math.max(8, Math.min(x + 16, innerWidth - tag.offsetWidth - 8)), ty = Math.max(8, Math.min(y + 20, innerHeight - tag.offsetHeight - 8));
-    tag.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+    if (!touch) {
+      const tx = Math.max(8, Math.min(x + 16, innerWidth - tag.offsetWidth - 8)), ty = Math.max(8, Math.min(y + 20, innerHeight - tag.offsetHeight - 8));
+      tag.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+    }
     tag.classList.add("on");
     clearTimeout(idleT);
     idleT = setTimeout(() => tag.classList.remove("on"), REST);
@@ -167,6 +173,7 @@
   const tagOff = () => { filming = false; hideTag(); };
   function toggleSound() {
     if (!filming) return;
+    asked = false;
     setSound(!sound);
     if (reel.paused && !reel.ended) reel.play().catch(() => {});
   }
@@ -216,7 +223,8 @@
         };
         // with sound if the browser allows it, silent if not, and on to the photos if neither
         setSound(true);
-        reel.play().catch(() => { setSound(false); return reel.play(); }).then(() => { filming = true; watch(); }).catch(res);
+        reel.play().catch(() => { asked = true; setSound(false); return reel.play(); })
+          .then(() => { filming = true; if (touch && asked) tag.classList.add("on"); watch(); }).catch(res);
       });
       return;
     }
