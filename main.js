@@ -12,9 +12,7 @@
   // ---- name, one span per letter with an alt font for hover ----
   const ALTS = ["f-ital", "f-black", "f-script", "f-story", "f-bench", "f-pixel"];
 
-  // where a letter sits. (its box is padded so that ink which overhangs it, like the
-  // arms of the v, is not clipped while it is written in; this is the letter alone.)
-  const glyph = (c) => c.querySelector(".b").getBoundingClientRect();
+  const glyph = (c) => c.getBoundingClientRect();   // where a letter sits
 
   // size the name so it spans the screen with an even margin either side
   async function fitName() {
@@ -44,7 +42,19 @@
   // must match the svg: the middle rim is at y=150, and the blocks sit 48 either side.)
   function placeSides() {
     const q = document.querySelector(".quote"), b = document.querySelector(".bio");
-    if (innerWidth <= 1080) { q.style.top = b.style.top = ""; return; }
+    if (innerWidth <= 1080) {
+      q.style.top = b.style.top = "";
+      // a phone: each of the three lines stays on one line, so the type is brought down
+      // until the longest fits
+      const p = $("bio");
+      p.style.fontSize = "";
+      if (innerWidth <= 700) {
+        const widest = Math.max(...[...p.children].map((l) => l.offsetWidth)), room = p.clientWidth;
+        if (widest > room) p.style.fontSize = Math.floor(parseFloat(getComputedStyle(p).fontSize) * (room / widest) * 0.985 * 100) / 100 + "px";
+      }
+      return;
+    }
+    $("bio").style.fontSize = "";
     const site = $("site").getBoundingClientRect(), g = document.querySelector(".garden").getBoundingClientRect();
     const [vx, vy, vw, vh] = $("fountain").getAttribute("viewBox").split(" ").map(Number);
     const sc = Math.min(g.width / vw, g.height / vh);
@@ -73,34 +83,20 @@
   addEventListener("resize", fitEnd);
   new IntersectionObserver(([e]) => { if (e.isIntersecting) endBig.classList.add("in"); }, { threshold: 0.35 }).observe(endBig);
 
-  // the name is stencilled first: a pen line traces the outline of each letter, one
-  // after the next. then the black ink is written into the outlines, and the pen
-  // lines fade. (the outlines are svg text laid exactly over the real name.)
+  // the name is stencilled first: the outline of each letter is drawn, one after the
+  // next. then the black ink is written into the outlines, and the outlines fade.
+  // (the outline is a copy of the same letter in the same box, so the two cannot disagree.)
   async function inkName() {
     await fitName();
-    const cs = getComputedStyle(nameEl), fs = parseFloat(cs.fontSize);
-    const tops = [...nameEl.querySelectorAll(".probe")].map((p) => p.getBoundingClientRect().top);
-    const baseOf = (r) => tops.reduce((a, b) => (Math.abs(b - (r.top + r.height * 0.75)) < Math.abs(a - (r.top + r.height * 0.75)) ? b : a));
-    const svg = document.createElementNS(SVGNS, "svg");
-    svg.setAttribute("class", "ink");
-    svg.style.setProperty("--len", fs * 5);
-    const chs = [...nameEl.querySelectorAll(".ch")];
-    chs.forEach((c, i) => {
-      const r = glyph(c);
-      const t = document.createElementNS(SVGNS, "text");
-      t.setAttribute("x", r.left); t.setAttribute("y", baseOf(r));
-      t.setAttribute("style", `--n:${(i * 0.08).toFixed(2)}s;font-family:${cs.fontFamily};font-size:${fs}px;font-weight:${cs.fontWeight}`);
-      t.textContent = c.querySelector(".b").textContent;
-      svg.appendChild(t);
-    });
-    document.body.appendChild(svg);
-    await wait((chs.length - 1) * 80 + 800);        // the stencil is drawn
+    const n = nameEl.querySelectorAll(".ch").length;
+    nameEl.classList.add("stencil");
+    await wait((n - 1) * 70 + 750);                 // the stencil is drawn
     nameEl.classList.add("set");                    // the ink is written into it, 110ms apart
-    await wait((chs.length - 1) * 110 + 850);
-    svg.classList.add("out");
+    await wait((n - 1) * 110 + 850);
+    nameEl.classList.add("inked");
     await wait(500);
     nameEl.classList.add("instant");
-    svg.remove();
+    nameEl.classList.remove("stencil", "inked");
   }
 
   function buildName() {
@@ -122,7 +118,7 @@
       ch.className = "ch";
       ch.style.setProperty("--i", i++);
       ch.setAttribute("aria-hidden", "true");
-      ch.innerHTML = `<span class="b">${c}</span><span class="a ${ALTS[k]}">${c}</span><span class="hit"></span>`;
+      ch.innerHTML = `<span class="o">${c}</span><span class="b">${c}</span><span class="a ${ALTS[k]}">${c}</span><span class="hit"></span>`;
       nameEl.appendChild(ch);
     }
     // zero-size probe so I can find the baseline later
@@ -449,7 +445,9 @@
     intro.classList.add("gone");
     document.body.classList.remove("intro-on");
     document.body.classList.add("live");
-    window.Fountain && window.Fountain.start($("fountain"));
+    // after the intro the title moves up first, then the page and the fountain arrive
+    if (instant) document.body.classList.add("snap");
+    setTimeout(() => window.Fountain && window.Fountain.start($("fountain")), instant ? 0 : 1150);
     if (instant) nameEl.classList.add("still");     // no glide: it is simply there
     nameEl.classList.remove("card");
     if (instant) nameEl.classList.add("instant", "set");
