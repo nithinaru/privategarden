@@ -23,6 +23,31 @@
     nameEl.style.fontSize = (fs * (innerWidth * 0.94)) / w + "px";
   }
   addEventListener("resize", () => fitName());
+
+  // each letter's outline is traced with a faint line, then it fills with ink
+  // and the line fades. letters start 0.1s apart. (svg text over the real
+  // name, swapped for the real one when it's done.)
+  async function inkName() {
+    await fitName();
+    const cs = getComputedStyle(nameEl), fs = parseFloat(cs.fontSize);
+    const base = nameEl.querySelector(".probe").getBoundingClientRect().top;
+    const svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("class", "ink");
+    svg.style.setProperty("--len", fs * 5);
+    const chs = [...nameEl.querySelectorAll(".ch")];
+    chs.forEach((c, i) => {
+      const t = document.createElementNS(SVGNS, "text");
+      t.setAttribute("x", c.getBoundingClientRect().left);
+      t.setAttribute("y", base);
+      t.style.cssText = `font-family:${cs.fontFamily};font-size:${fs}px;font-weight:${cs.fontWeight};--n:${i * 0.1}s`;
+      t.textContent = c.querySelector(".b").textContent;
+      svg.appendChild(t);
+    });
+    document.body.appendChild(svg);
+    await wait((chs.length - 1) * 100 + 1850);
+    nameEl.classList.add("instant", "set");
+    svg.remove();
+  }
   function buildName() {
     const txt = "Nithin Aruswamy";
     let i = 0, last = -1;
@@ -155,48 +180,73 @@
     reel.classList.remove("on");
     $("placeholder").classList.remove("on");
     box.classList.add("on");
-    const counter = $("count"), grid = $("fgrid");
+    const counter = $("count");
+    const r = stage.getBoundingClientRect();
+    Object.assign(counter.style, { left: r.left + "px", top: r.top - 20 + "px" });
     counter.classList.add("on");
 
-    // every cut the card takes a new size, and guide lines snap to its edges,
-    // so the frame re-measures itself around each photo. hard cuts, no easing.
-    const base = stage.getBoundingClientRect().width;
-    const SHAPES = [[1, 16 / 9], [0.75, 4 / 3], [1.25, 16 / 9], [0.7, 1], [1.1, 3 / 2], [1.35, 2.2], [0.88, 16 / 9]];
-    const mk = (cls) => { const i = document.createElement("i"); i.className = cls; grid.appendChild(i); return i; };
-    const hs = [0, 1, 2, 3].map(() => mk("h")), vs = [0, 1, 2, 3].map(() => mk("v"));
-    const STEP = 48, rnd = (n) => 1 + Math.floor(Math.random() * n);
-    const place = (i) => {
-      const [k, ratio] = SHAPES[i % SHAPES.length];
-      const w = Math.min(base * k, innerWidth * 0.9), h = w / ratio;
-      const l = (innerWidth - w) / 2, t = (innerHeight - h) / 2;
-      Object.assign(stage.style, { width: w + "px", height: h + "px", left: l + "px", top: t + "px" });
-      // two lines on the card's edges, two further out on a 48px rhythm
-      [t, t + h, t - STEP * rnd(3), t + h + STEP * rnd(3)].forEach((y, n) => (hs[n].style.top = y + "px"));
-      [l, l + w, l - STEP * rnd(5), l + w + STEP * rnd(5)].forEach((x, n) => (vs[n].style.left = x + "px"));
-      Object.assign(counter.style, { left: l + "px", top: t - 20 + "px" });
-    };
-    stage.classList.add("cut");
-    grid.classList.add("on");
-
-    // starts slow and quickens a little, but every photo stays readable.
-    // a short set loops so there are always at least 8 beats.
-    const count = Math.max(frames.length, 8);
-    const pad = (n) => String(n).padStart(2, "0");
-    for (let i = 0; i < count && !done; i++) {
+    // construction lines behind the card: one new shape starts as each photo
+    // lands and takes 1.4s to draw, so they overlap and build up in order
+    const shapes = construction(r);
+    const n = Math.max(frames.length, 8);        // a short set loops
+    const pad = (v) => String(v).padStart(2, "0");
+    // starts slow, runs fast through the middle, slows again for the end
+    const beat = (i) => 110 + 470 * Math.pow((Math.cos((2 * Math.PI * i) / (n - 1)) + 1) / 2, 1.4);
+    for (let i = 0; i < n && !done; i++) {
       const k = i % frames.length;
       box.replaceChildren(frames[k]);
-      place(i);
       counter.textContent = `${pad(k + 1)} / ${pad(frames.length)}`;
-      await wait(380 - 160 * (i / Math.max(count - 1, 1)));
+      const from = Math.floor((i * shapes.length) / n), to = Math.floor(((i + 1) * shapes.length) / n);
+      shapes.slice(from, to).forEach((el, j) => setTimeout(() => (el.style.strokeDashoffset = 0), j * 70));
+      await wait(beat(i));
     }
-    await wait(250);
-    grid.classList.remove("on");
-    box.replaceChildren();
+    if (done) return;
+    await wait(1300);                             // rest on the last photo
+
+    // hand off: lines pull back in order, the photo and its text ease away
+    shapes.forEach((el, j) => setTimeout(() => { el.style.transitionDuration = ".8s"; el.style.strokeDashoffset = 1; }, j * 35));
     counter.classList.remove("on");
     sub.classList.remove("on");
-    stage.style.background = "var(--paper)";
     stage.classList.add("out");
-    await wait(350);
+    await wait(1300);
+    box.replaceChildren();
+    $("fgrid").replaceChildren();
+  }
+
+  // a golden-ratio construction laid over the screen and keyed to the card:
+  // rectangles first, then circles, then rules, then diagonals
+  function construction(c) {
+    const svg = $("fgrid"), W = innerWidth, H = innerHeight, PHI = 0.618;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const out = [];
+    const add = (tag, attrs) => {
+      const el = document.createElementNS(SVGNS, tag);
+      for (const k in attrs) el.setAttribute(k, attrs[k]);
+      el.setAttribute("pathLength", 1);
+      svg.appendChild(el);
+      out.push(el);
+    };
+    const rect = (x, y, w, h) => add("path", { d: `M${x} ${y}H${x + w}V${y + h}H${x}Z` });
+    const line = (x1, y1, x2, y2) => add("path", { d: `M${x1} ${y1}L${x2} ${y2}` });
+    const circ = (cx, cy, rad) => add("circle", { cx, cy, r: rad });
+    const gx = Math.round(W * PHI), gy = Math.round(H * PHI);  // golden cuts of the screen
+    const cx = c.left + c.width / 2, cy = c.top + c.height / 2;
+
+    rect(0.5, 0.5, gx, H - 1);                     // the big square-ish field
+    rect(gx + 0.5, 0.5, W - gx - 1, gy);           // upper right
+    rect(gx + 0.5, gy + 0.5, (W - gx) * PHI, H - gy - 1);
+    circ(cx, cy, H / 2 - 1);                       // the card's own circle
+    circ(gx + (W - gx) / 2, gy / 2, Math.min(W - gx, gy) / 2);
+    circ(gx + ((W - gx) * PHI) / 2, gy + (H - gy) / 2, Math.min((W - gx) * PHI, H - gy) / 2);
+    line(c.left + 0.5, 0, c.left + 0.5, H);        // rules on the card's edges
+    line(c.right - 0.5, 0, c.right - 0.5, H);
+    line(0, c.top + 0.5, W, c.top + 0.5);
+    line(0, c.bottom - 0.5, W, c.bottom - 0.5);
+    const slope = c.height / c.width, far = Math.max(W, H) * 2;  // diagonals through its corners
+    line(cx - far, cy - far * slope, cx + far, cy + far * slope);
+    line(cx - far, cy + far * slope, cx + far, cy - far * slope);
+    line(gx, H, gx + (W - gx), 0);
+    return out;
   }
 
   // ---- 4. ruler lines, then the type sets onto them ----
@@ -249,25 +299,25 @@
     guidesEl.classList.add("drawn");
     await wait(1500);
 
-    // set the type
-    nameEl.classList.add("set");
-    await wait(chs.length * 45 + 700);
+    // ink the type onto the lines
+    await inkName();
     guidesEl.classList.add("out");
     await wait(500);
   }
 
   // ---- 5. land on the page ----
-  function finish(instant) {
+  function finish(instant, ink) {
     if (done && instant) return;
     done = true;
     try { localStorage.setItem("pg-seen", "1"); } catch (e) {}
     reel.pause();
-    if (instant) nameEl.classList.add("instant");
-    nameEl.classList.add("set");
     intro.classList.add("gone");
     document.body.classList.remove("intro-on");
     document.body.classList.add("live");
     window.Fountain && window.Fountain.start($("fountain"));
+    if (ink) return inkName();
+    if (instant) nameEl.classList.add("instant");
+    nameEl.classList.add("set");
   }
 
   async function run() {
@@ -288,6 +338,7 @@
   const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   $("skip").onclick = () => finish(true);
-  if ((seen && !force) || calm) finish(true);
+  if (calm) finish(true);
+  else if (seen && !force) finish(true, true);
   else $("enter").onclick = run;
 })();

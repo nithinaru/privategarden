@@ -21,7 +21,7 @@
       <div id="placeholder" class="placeholder"></div>
       <div id="flicker" class="flicker"></div>
     </div>
-    <div id="fgrid" class="fgrid"></div>
+    <svg id="fgrid" class="fgrid" preserveAspectRatio="none" aria-hidden="true"></svg>
     <p id="count" class="count"></p>
     <p id="sub" class="sub"></p>
     <svg id="guides" class="guides"></svg>
@@ -48,8 +48,19 @@
     <a class="replay" href="?intro">Replay intro</a>
   </main>
 
+  <!-- work: scroll-driven stack that bursts into a field. see work.js -->
+  <section id="work" class="work" aria-label="Work">
+    <div class="work-rails" aria-hidden="true"></div>
+    <div class="work-stage">
+      <div class="work-space"></div>
+      <p class="work-word"></p>
+      <p class="work-word"></p>
+    </div>
+  </section>
+
   <script src="config.js"></script>
   <script src="fountain.js"></script>
   <script src="main.js"></script>
+  <script src="work.js"></script>
 </body>
 </html>

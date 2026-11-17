@@ -15,4 +15,13 @@ window.SITE = {
   // e.g. "assets/flicker/01.jpg". empty = generated placeholder frames.
   // run new photos through tools/flicker.py so they match.
   flicker: Array.from({ length: 17 }, (_, i) => i + 1).map((n) => `assets/flicker/${String(n).padStart(2, "0")}.jpg`),
+
+  // the work section below the fountain.
+  work: {
+    // the two phrases either side of the stack
+    words: ["Things made", "with care"],
+    // one entry per card. empty = 28 skeleton placeholders.
+    // e.g. { src: "assets/work/poster.jpg", title: "Poster · 2026", href: "https://…", ratio: 16 / 9 }
+    items: [],
+  },
 };

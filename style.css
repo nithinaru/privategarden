@@ -1,8 +1,8 @@
 :root {
   --paper: #fff;
   --ink: #111;
-  --rule: #d2d2d2;       /* ruler lines: light gray, not black */
-  --rule-text: #a0a0a0;
+  --rule: #e6e6e6;       /* ruler lines: light gray, not black */
+  --rule-text: #b4b4b4;
   --serif: "Source Serif 4", Georgia, serif;
   --sans: "Host Grotesk", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -90,7 +90,7 @@ a { color: inherit; }
 }
 .sub.on { opacity: 1; transform: none; }
 /* after the shrink the line sits under the card, never on top of it */
-.sub.rise { bottom: calc(50vh - var(--card) * .4 - 4.4rem); font-size: clamp(1rem, 1.8vw, 1.35rem); }
+.sub.rise { bottom: calc(50vh - var(--card) * 9 / 32 - 4.2rem); font-size: clamp(1rem, 1.8vw, 1.35rem); }
 #intro.paper .sub { color: var(--ink); }
 :root { --card: min(320px, 72vw); }
 
@@ -102,16 +102,33 @@ a { color: inherit; }
 }
 .count.on { opacity: 1; }
 
-/* guide lines that snap to the card on every cut */
-.stage.cut { transition: opacity .4s; }
-.fgrid { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .35s; }
-.fgrid.on { opacity: 1; }
-.fgrid i { position: absolute; background: var(--rule); }
-.fgrid .h { left: 0; right: 0; height: 1px; }
-.fgrid .v { top: 0; bottom: 0; width: 1px; }
+/* construction lines behind the card. each shape is one unit long (pathLength=1)
+   and draws itself over 1.4s; main.js starts them in order as photos land */
+.fgrid { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.fgrid > * {
+  fill: none; stroke: var(--rule); stroke-width: 1;
+  stroke-dasharray: 1 1; stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1.4s cubic-bezier(.65, 0, .35, 1);
+}
+.stage { z-index: 2; }  /* the photo sits over the construction lines */
+.stage.card.out { opacity: 0; transform: scale(.97); transition: opacity .9s ease, transform .9s ease; }
+
+/* the name, inked: outline traced, then filled, then the outline fades */
+.ink { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 31; pointer-events: none; overflow: visible; }
+.ink text {
+  fill: var(--ink); fill-opacity: 0;
+  stroke: var(--ink); stroke-width: 1.1px; stroke-opacity: .32;
+  stroke-dasharray: var(--len); stroke-dashoffset: var(--len);
+  animation: ink-draw .6s cubic-bezier(.42, 0, .58, 1) var(--n) forwards,
+             ink-fill .4s cubic-bezier(.42, 0, 1, 1) calc(var(--n) + .8s) forwards,
+             ink-line .2s linear calc(var(--n) + 1.6s) forwards;
+}
+@keyframes ink-draw { to { stroke-dashoffset: 0; } }
+@keyframes ink-fill { to { fill-opacity: 1; } }
+@keyframes ink-line { to { stroke-opacity: 0; } }
 
 .guides { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transition: opacity .6s; }
-.guides line { stroke: var(--rule); stroke-width: .7; transition: stroke-dashoffset .9s cubic-bezier(.6,0,.2,1); }
+.guides line { stroke: var(--rule); stroke-width: 1; transition: stroke-dashoffset 1.4s cubic-bezier(.65,0,.35,1); }
 .guides text { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; fill: var(--rule-text); opacity: 0; transition: opacity .4s; }
 .guides.drawn text { opacity: .8; }
 .guides.out { opacity: 0; }
@@ -183,6 +200,73 @@ body.live .meta, body.live .garden, body.live .replay { opacity: 1; }
   font-size: 13px; color: #a0a0a0; text-decoration: none; letter-spacing: .02em;
 }
 .replay:hover { color: var(--ink); }
+
+/* fountain: hairline construction drawing */
+#fountain path {
+  fill: none; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 1 1; stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1s cubic-bezier(.65, 0, .35, 1);
+}
+#fountain .f-guide { stroke: var(--rule); stroke-width: .7; }
+#fountain .f-line  { stroke: #1f1f1f; stroke-width: .8; }
+#fountain .f-water { stroke: #1f1f1f; stroke-width: .7; }
+#fountain .f-still { stroke: #9a9a9a; stroke-width: .6; }
+#fountain .f-mask  { fill: var(--paper); stroke: none; stroke-dasharray: none; }
+#fountain .f-water.run { stroke-dasharray: .09 .11; transition: none; animation: fall 1.1s linear infinite; }
+@keyframes fall { to { stroke-dashoffset: -.2; } }
+
+/* ---------- work: pinned stage on a tall scroll track ---------- */
+.work { position: relative; height: 520svh; --blank: #f1f1ef; }
+.work-rails { position: absolute; inset: 0 3vw; pointer-events: none; }
+.work-rails::before, .work-rails::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 1px;
+  background: repeating-linear-gradient(#e0e0e0 0 6px, transparent 6px 12px);
+}
+.work-rails::before { left: 0; } .work-rails::after { right: 0; }
+.work-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+.work-space { position: absolute; top: 50%; left: 50%; width: 0; height: 0; }
+.work-card {
+  position: absolute; top: 0; left: 0; translate: -50% -50%; display: block;
+  background: var(--blank); opacity: 0; will-change: transform, opacity; text-decoration: none;
+  transition: box-shadow .22s;
+}
+.work-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+a.work-card.open:hover { box-shadow: 0 24px 48px -28px rgba(0, 0, 0, .45); z-index: 900 !important; }
+/* skeletons: a hairline edge and four close grays, so the stack reads as separate cards */
+.work-card.skel { outline: 1px solid #e3e3e0; outline-offset: -1px; }
+.work-card.skel:nth-child(4n + 1) { background: #ebebe8; }
+.work-card.skel:nth-child(4n + 2) { background: #f5f5f3; }
+.work-card.skel:nth-child(4n + 3) { background: #e6e6e3; }
+/* skeleton shimmer */
+.work-card.skel { overflow: visible; }
+.work-card.skel::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .75) 50%, transparent 70%) 0 0 / 250% 100%;
+  animation: shimmer 1.8s linear infinite;
+}
+@keyframes shimmer { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+/* caption under each card once it has landed: two skeleton bars, or the title */
+.work-cap {
+  position: absolute; left: 0; top: calc(100% + 8px); white-space: nowrap;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: #1f1f1f;
+  opacity: 0; transition: opacity .4s;
+}
+.work-card.open .work-cap { opacity: 1; }
+.work-cap i { display: block; height: 6px; margin-bottom: 5px; background: var(--blank); width: 72px; }
+.work-cap i + i { width: 44px; }
+.work-word {
+  position: absolute; top: 50%; left: 50%; margin: 0; white-space: nowrap; pointer-events: none; z-index: 400;
+  font-family: var(--serif); font-weight: 400; font-size: clamp(30px, 5vw, 76px); line-height: 1; letter-spacing: -.02em;
+  color: #1f1f1f; transform-origin: 0 50%;
+}
+.work-word:first-of-type { transform-origin: 100% 50%; }
+/* reduced motion: a plain grid */
+.work.still { height: auto; padding: 12vh 6vw; }
+.work.still .work-stage { position: static; height: auto; overflow: visible; }
+.work.still .work-word { position: static; display: inline; font-size: clamp(28px, 4vw, 56px); }
+.work.still .work-space { position: static; width: auto; height: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 3rem 1.5rem; margin-top: 3rem; }
+.work.still .work-card { position: relative; translate: none; opacity: 1; width: auto; aspect-ratio: 16 / 9; }
+.work.still .work-cap { opacity: 1; }
 
 @media (max-width: 760px) {
   .meta { flex-direction: column; padding: 4vw 6vw 0; font-size: 14px; }
