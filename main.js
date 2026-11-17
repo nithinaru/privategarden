@@ -229,6 +229,7 @@
       const t = setTimeout(() => { intro.removeEventListener("click", go, true); tagOff(); res(false); }, 7000);
       function go(e) {
         if (e.target.closest(".skip")) return;
+        if (phase !== "film") { clearTimeout(t); intro.removeEventListener("click", go, true); return res(false); }
         e.stopPropagation();
         clearTimeout(t); intro.removeEventListener("click", go, true);
         asked = false; setSound(true);
@@ -238,10 +239,23 @@
     });
   }
 
+  // skip, pressed during the film, leaves the film and carries on from the photos.
+  // pressed after that, it goes straight to the page.
+  let phase = "", leaveFilm = () => {};
+  const leftFilm = new Promise((res) => (leaveFilm = res));
+  function skip() {
+    if (phase !== "film") return finish(true);
+    phase = "rest";
+    reel.muted = true; reel.pause();
+    tagOff();
+    leaveFilm();
+  }
+
   async function playReel() {
+    phase = "film";
     reel.classList.add("on");
     let state = await startFilm();
-    if (done) return;
+    if (done || phase !== "film") return;
     if (state === "blocked") state = (await askToPlay()) ? "ok" : "slow";
     if (state === "ok") {
       filming = true;
@@ -253,7 +267,7 @@
         // if the film stops arriving part way through, give it 6s and then move on
         let at = -1, since = performance.now(), prev = since;
         const watch = () => {
-          if (done || reel.ended || reel.error || reel.currentTime >= cut) return res();
+          if (done || phase !== "film" || reel.ended || reel.error || reel.currentTime >= cut) return res();
           const now = performance.now();
           if (reel.currentTime !== at || now - prev > 1000) { at = reel.currentTime; since = now; }
           prev = now;
@@ -441,7 +455,8 @@
     try { history.scrollRestoration = "manual"; } catch (e) {}
     scrollTo(0, 0);
     loadShots();
-    await playReel(); if (done) return;
+    await Promise.race([playReel(), leftFilm]); if (done) return;
+    phase = "rest";
     await toCard(); if (done) return;
     await flicker(); if (done) return;
     await rule(); if (done) return;
@@ -469,7 +484,7 @@
   });
   const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  $("skip").onclick = () => finish(true);
+  $("skip").onclick = skip;
   if (calm) finish(true);
   else if (seen && !force) finish(true, true);
   else run();
