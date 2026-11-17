@@ -240,13 +240,14 @@
     });
   }
 
-  // skip, pressed during the film, leaves the film and carries on from the photos.
-  // pressed after that, it goes straight to the page.
+  // skip leaves the film and carries on from the photos. the button is only there
+  // while the film is.
   let phase = "", leaveFilm = () => {};
   const leftFilm = new Promise((res) => (leaveFilm = res));
   function skip() {
-    if (phase !== "film") return finish(true);
+    if (phase !== "film") return;
     phase = "rest";
+    $("skip").hidden = true;
     reel.muted = true; reel.pause();
     tagOff();
     leaveFilm();
@@ -288,14 +289,6 @@
     intro.classList.add("paper");
     stage.classList.add("card");
     await wait(1100);
-  }
-  // with no film before it, the card is simply there on the paper
-  function cardNow() {
-    intro.style.transition = stage.style.transition = "none";
-    intro.classList.add("paper");
-    stage.classList.add("card");
-    stage.offsetWidth;                              // settle before the transitions come back
-    intro.style.transition = stage.style.transition = "";
   }
 
   // ---- 3. flicker inside the card ----
@@ -446,7 +439,6 @@
   function finish(instant) {
     if (done && instant) return;
     done = true;
-    try { localStorage.setItem("pg-seen", "1"); } catch (e) {}
     reel.pause();
     tagOff();
     intro.classList.add("gone");
@@ -458,20 +450,15 @@
     if (instant) nameEl.classList.add("instant", "set");
   }
 
-  // film = false starts at the photos: that is what a returning visitor gets
-  async function run(film) {
+  async function run() {
     // a reload part way down the page must not leave the intro playing off screen
     try { history.scrollRestoration = "manual"; } catch (e) {}
     scrollTo(0, 0);
     loadShots();
-    if (film) {
-      await Promise.race([playReel(), leftFilm]); if (done) return;
-      phase = "rest";
-      await toCard(); if (done) return;
-    } else {
-      phase = "rest";
-      cardNow();
-    }
+    await Promise.race([playReel(), leftFilm]); if (done) return;
+    phase = "rest";
+    $("skip").hidden = true;
+    await toCard(); if (done) return;
     await flicker(); if (done) return;
     await rule(); if (done) return;
     finish(false);
@@ -480,19 +467,13 @@
   // ---- go ----
   buildName();
   fitName();
-  let seen = null;
-  try { seen = localStorage.getItem("pg-seen"); } catch (e) {}
-  // "replay intro" leaves a note for the next load, so the address stays clean. an old
-  // ?intro link still works, and is tidied out of the address bar.
-  let force = false;
-  try { force = sessionStorage.getItem("pg-replay") === "1"; sessionStorage.removeItem("pg-replay"); } catch (e) {}
+  // every load opens with the film, so "replay intro" is a reload from the top.
+  // (an old ?intro link still works, and is tidied out of the address bar.)
   if (new URLSearchParams(location.search).has("intro")) {
-    force = true;
     try { history.replaceState(null, "", location.pathname); } catch (e) {}
   }
   document.querySelector(".replay").addEventListener("click", (e) => {
     e.preventDefault();
-    try { sessionStorage.setItem("pg-replay", "1"); } catch (err) { location.href = "?intro"; return; }
     scrollTo(0, 0);
     location.reload();
   });
@@ -500,5 +481,5 @@
 
   $("skip").onclick = skip;
   if (calm) finish(true);
-  else run(!seen || force);
+  else run();
 })();
