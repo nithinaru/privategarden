@@ -161,7 +161,7 @@ window.Fountain = (() => {
   const RIMS = [
     { y: 116, rx: 25, ry: 4.2, rate: 120, wait: 0.5, streams: 9 },
     { y: 151, rx: 43, ry: 6.2, rate: 190, wait: 0.95, streams: 13 },
-    { y: 201, rx: 69, ry: 10, rate: 95, wait: 1.45, streams: 11 },
+    { y: 201, rx: 69, ry: 10, rate: 170, wait: 1.45, streams: 15 },
   ];
   RIMS.forEach((r) => (r.at = Array.from({ length: r.streams }, (_, i) => ({ a: -1.4 + (2.8 * i) / (r.streams - 1), ph: rand(0, 6.3) }))));
   const POOLS = [                                          // where falling water can land
@@ -219,7 +219,8 @@ window.Fountain = (() => {
             a = st.a + Math.sin(t * 0.6 + st.ph) * 0.05 + rand(-0.03, 0.03);
           } else a = rand(-1.42, 1.42);                    // the rest is loose spill between them
           const s = Math.sin(a), c = Math.cos(a);
-          spawn(CX + r.rx * s, r.y + r.ry * c, s * rand(11, 21) + rand(-1.5, 1.5), rand(-5, 2), c, false);
+          spawn(CX + r.rx * s, r.y + r.ry * c, s * rand(13, 30) + rand(-2, 2), rand(-6, 2), c, false);
+          drops[drops.length - 1].skip = POOLS[i];
         }
       });
       if (hand.wet > 0.02) {                               // a wet hand drips
@@ -250,16 +251,25 @@ window.Fountain = (() => {
           }
         }
         let landed = null;
-        if (p.vy > 0) {
+        if (p.vy > 0 && !p.out) {
+          // a drop let go at a rim starts a hair above the bowl it just left, so it skips that one.
+          // every other surface catches it on the frame it crosses.
           for (const pool of POOLS) {
+            if (pool === p.skip) continue;
             const sy = pool.y + pool.ry * p.d * 0.85;
-            if (py <= sy - 1 && p.y >= sy && Math.abs(p.x - CX) < pool.rx) { landed = pool; p.y = sy; break; }
+            if (py < sy && p.y >= sy && Math.abs(p.x - CX) < pool.rx) { landed = pool; p.y = sy; break; }
           }
         }
         if (landed || p.y > GROUND) {
           if (landed && !p.spray) {
             const n = Math.random() < (landed.basin ? 0.55 : 0.4) ? 1 : 0;
             for (let k = 0; k < n; k++) spawn(p.x, p.y - 0.5, rand(-18, 18), -rand(14, 44), p.d, true);
+            // now and then a splash near the edge jumps the coping and falls to the ground
+            const off = (p.x - CX) / landed.rx;
+            if (landed.basin && Math.abs(off) > 0.5 && Math.random() < 0.3) {
+              spawn(p.x, p.y - 0.5, Math.sign(off) * rand(26, 58), -rand(34, 60), p.d, true);
+              drops[drops.length - 1].out = true;
+            }
             if (Math.random() < (landed.basin ? 0.06 : 0.025)) rings.push({ x: p.x, y: p.y, age: 0, max: landed.basin ? 24 : 7 });
           }
           drops[i] = drops[drops.length - 1]; drops.pop();
