@@ -230,7 +230,10 @@
       reel.setAttribute("webkit-playsinline", "");
       // the first copy this browser can play: av1, then hevc, then h264
       const can = (c) => reel.canPlayType('video/mp4; codecs="' + c + '"') !== "";
-      const set = innerWidth < 800 && S.videoSmall ? S.videoSmall : S.video;
+      // the small set on a narrow screen, and on a slow or data-saving connection
+      const net = navigator.connection || {};
+      const thin = net.saveData || (net.downlink > 0 && net.downlink < 2.5) || /2g|3g/.test(net.effectiveType || "");
+      const set = (innerWidth < 800 || thin) && S.videoSmall ? S.videoSmall : S.video;
       reel.src = typeof set === "string" ? set
         : (set.av1 && can("av01.0.08M.08") && set.av1) || (set.hevc && can("hvc1.1.6.L120.90") && set.hevc) || set.h264;
       const gone = (e) => reel.error || (e && e.name === "NotSupportedError");
@@ -460,6 +463,7 @@
   function finish(instant) {
     if (done && instant) return;
     done = true;
+    late();
     reel.pause();
     tagOff();
     intro.classList.add("gone");
@@ -473,12 +477,34 @@
     if (instant) nameEl.classList.add("instant", "set");
   }
 
+  // the film gets the line to itself first. the photos, the bio and hover faces and the
+  // footer mark are held back until the film has a head start, so a slow connection
+  // is not split thirty ways while the film is trying to begin.
+  let lated = false;
+  function late() {
+    if (lated) return;
+    lated = true;
+    loadShots();
+    document.body.classList.add("late");
+    document.querySelectorAll("link[data-late]").forEach((l) => { if (l.dataset.late !== "hover" || !touch) l.media = "all"; });
+    document.dispatchEvent(new Event("pg:late"));
+  }
+
   async function run() {
     // a reload part way down the page must not leave the intro playing off screen
     try { history.scrollRestoration = "manual"; } catch (e) {}
     scrollTo(0, 0);
-    loadShots();
-    await Promise.race([playReel(), leftFilm]); if (done) return;
+    // head start: 10s of film in hand, or all of it, or 6s of it already played. never later than 12s.
+    const ahead = () => {
+      const b = reel.buffered, end = b.length ? b.end(b.length - 1) : 0;
+      if (end - reel.currentTime > 10 || (reel.duration && end >= reel.duration - 0.5) || reel.currentTime > 6) late();
+    };
+    reel.addEventListener("progress", ahead);
+    reel.addEventListener("timeupdate", ahead);
+    setTimeout(late, 12000);
+    await Promise.race([playReel(), leftFilm]);
+    late();
+    if (done) return;
     phase = "rest";
     $("skip").hidden = true;
     await toCard(); if (done) return;

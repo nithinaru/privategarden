@@ -33,11 +33,12 @@
   <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
   <!-- the faces the page is set in -->
   <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@300..800&family=IBM+Plex+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&display=swap" rel="stylesheet">
-  <!-- the bio face and the four the title letters change to on hover: these load without holding the page up -->
-  <link href="https://api.fontshare.com/v2/css?f[]=erode@400,500,600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Story+Script&family=Style+Script&family=Workbench&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <!-- the bio face and the four the title letters change to on hover: main.js switches these on
+       once the film has a head start (the hover faces never on a phone) -->
+  <link href="https://api.fontshare.com/v2/css?f[]=erode@400,500,600&display=swap" rel="stylesheet" media="print" data-late>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Story+Script&family=Style+Script&family=Workbench&display=swap" rel="stylesheet" media="print" data-late="hover">
   <noscript><link href="https://api.fontshare.com/v2/css?f[]=erode@400,500,600&display=swap" rel="stylesheet"></noscript>
-  <link rel="stylesheet" href="style.css?v=1117184123">
+  <link rel="stylesheet" href="style.css?v=1117191949">
   <noscript><style>#intro { display: none; } body { overflow: auto !important; } .under, .garden, .foot { opacity: 1 !important; }</style></noscript>
 </head>
 <body class="intro-on">
@@ -108,9 +109,9 @@
     </p>
   </footer>
 
-  <script src="config.js?v=1117184123"></script>
-  <script src="fountain.js?v=1117184123"></script>
-  <script src="main.js?v=1117184123"></script>
-  <script src="work.js?v=1117184123"></script>
+  <script src="config.js?v=1117191949"></script>
+  <script src="fountain.js?v=1117191949"></script>
+  <script src="main.js?v=1117191949"></script>
+  <script src="work.js?v=1117191949"></script>
 </body>
 </html>

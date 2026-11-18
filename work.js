@@ -28,12 +28,17 @@
     const a = document.createElement(it.href ? "a" : "div");
     a.className = "work-card";
     if (it.href) { a.href = it.href; a.target = "_blank"; a.rel = "noopener"; }
-    const im = new Image(); im.src = it.src; im.alt = it.title || ""; im.loading = "lazy"; a.appendChild(im);
+    const im = new Image(); im.dataset.src = it.src; im.alt = it.title || ""; a.appendChild(im);
     if (it.title) { const cap = document.createElement("span"); cap.className = "work-cap"; cap.textContent = it.title; a.appendChild(cap); }
     space.appendChild(a);
     const ratio = it.ratio || 16 / 9;
     return { el: a, ratio, size: 0.55 + rnd() * 0.45, fx: rnd(), fy: rnd(), jit: rnd(), d: Math.abs(i - MID) };
   });
+  // the photos are fetched once the intro film has its head start (main.js says when)
+  const fetchPhotos = () => cards.forEach((c) => { const im = c.el.querySelector("img"); if (im && !im.src) im.src = im.dataset.src; });
+  if (document.body.classList.contains("late")) fetchPhotos();
+  else { document.addEventListener("pg:late", fetchPhotos, { once: true }); setTimeout(fetchPhotos, 15000); }
+
   // depth: how far a card travels as the field drifts (1 = the nearest, 0.25 = the furthest)
   cards.forEach((c) => { c.sp = 0.25 + ((c.size - 0.55) / 0.45) * 0.75; c.near = 100 + Math.round(c.size * 100); });
   // nearest the middle shows first and sits on top

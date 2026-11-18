@@ -321,8 +321,10 @@ body.live .under { position: relative; z-index: 31; }
   display: inline-block; width: .8em; height: .917em; flex: none;
   filter: drop-shadow(-.0044em -.0064em 0 #fff) drop-shadow(.0044em .0064em 0 rgba(104, 104, 100, .68)) drop-shadow(.009em .014em .014em rgba(96, 96, 92, .2));
 }
-.end-icon span {
-  display: block; width: 100%; height: 100%; background: currentColor;
+.end-icon span { display: block; width: 100%; height: 100%; }
+/* fetched late, with the photos */
+body.late .end-icon span {
+  background: currentColor;
   -webkit-mask: url("assets/logo.webp?v=1") center / contain no-repeat; mask: url("assets/logo.webp?v=1") center / contain no-repeat;
 }
 /* the whole line rises from under the bottom edge when the footer scrolls into view */
