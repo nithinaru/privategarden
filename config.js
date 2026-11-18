@@ -26,16 +26,22 @@ window.SITE = {
 
 
   // the intro film. it opens with its sound on; a click switches it off and on.
-  // on a narrow screen the smaller copy plays.
-  video: "assets/intro.mp4",
-  videoSmall: "assets/intro-sm.mp4",
-  // the second its picture ends (21s + 21 frames at 24fps). the page moves on to the photos
+  // three copies of each, because the film has grain all over it: av1 keeps the grain and
+  // stays small, hevc is for safari, h264 is for anything older. the page plays the first
+  // one the browser can. on a narrow screen the smaller set plays.
+  // (raise the ?v= when the film is replaced, so browsers fetch the new one.)
+  video: { av1: "assets/intro-av1.mp4?v=3", hevc: "assets/intro-hevc.mp4?v=3", h264: "assets/intro.mp4?v=3" },
+  videoSmall: { av1: "assets/intro-sm-av1.mp4?v=3", hevc: "assets/intro-sm-hevc.mp4?v=3", h264: "assets/intro-sm.mp4?v=3" },
+  // the second its picture ends (25s). the page moves on to the photos
   // there, and the rest of the soundtrack keeps playing under them.
-  cut: 21.875,
+  cut: 25,
 
+  // (the ?v= on every photo below: browsers keep photos for a day, so when a photo is
+  // swapped or the order changes under the same file names, raise the number on all of
+  // them, here and in work.items, or visitors see a mix of old and new.)
   // photos that flicker inside the card after the reel. ~12-16 is a good number.
   // run new photos through tools/flicker.py so they match.
-  flicker: Array.from({ length: 15 }, (_, i) => i + 1).map((n) => `assets/flicker/${String(n).padStart(2, "0")}.webp`),
+  flicker: Array.from({ length: 15 }, (_, i) => i + 1).map((n) => `assets/flicker/${String(n).padStart(2, "0")}.webp?v=2`),
 
   // the work section below the fountain.
   work: {
@@ -44,21 +50,21 @@ window.SITE = {
     // one entry per card. these are the same photos as the flicker, cut in colour.
     // each can have: src (image), title (caption under it; "" for none), href (link), ratio (default 16 / 9).
     items: [
-      { src: "assets/work/01.webp", title: "" },
-      { src: "assets/work/02.webp", title: "" },
-      { src: "assets/work/03.webp", title: "" },
-      { src: "assets/work/04.webp", title: "" },
-      { src: "assets/work/05.webp", title: "" },
-      { src: "assets/work/06.webp", title: "" },
-      { src: "assets/work/07.webp", title: "" },
-      { src: "assets/work/08.webp", title: "" },
-      { src: "assets/work/09.webp", title: "" },
-      { src: "assets/work/10.webp", title: "" },
-      { src: "assets/work/11.webp", title: "" },
-      { src: "assets/work/12.webp", title: "" },
-      { src: "assets/work/13.webp", title: "" },
-      { src: "assets/work/14.webp", title: "" },
-      { src: "assets/work/15.webp", title: "" },
+      { src: "assets/work/01.webp?v=2", title: "" },
+      { src: "assets/work/02.webp?v=2", title: "" },
+      { src: "assets/work/03.webp?v=2", title: "" },
+      { src: "assets/work/04.webp?v=2", title: "" },
+      { src: "assets/work/05.webp?v=2", title: "" },
+      { src: "assets/work/06.webp?v=2", title: "" },
+      { src: "assets/work/07.webp?v=2", title: "" },
+      { src: "assets/work/08.webp?v=2", title: "" },
+      { src: "assets/work/09.webp?v=2", title: "" },
+      { src: "assets/work/10.webp?v=2", title: "" },
+      { src: "assets/work/11.webp?v=2", title: "" },
+      { src: "assets/work/12.webp?v=2", title: "" },
+      { src: "assets/work/13.webp?v=2", title: "" },
+      { src: "assets/work/14.webp?v=2", title: "" },
+      { src: "assets/work/15.webp?v=2", title: "" },
     ],
   },
 };

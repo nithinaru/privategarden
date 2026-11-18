@@ -170,20 +170,27 @@ window.Fountain = (() => {
   const BASIN = POOLS[3], GROUND = 372, HAND = 14;
 
   function water(wrap, startIn) {
+    // the canvas covers the whole first screen, not just the fountain's box, so water that is
+    // thrown about is never cut off at an edge. it sits under the text (see .wash in style.css).
     const cv = document.createElement("canvas");
-    wrap.appendChild(cv);
+    cv.className = "wash";
+    const room = wrap.parentElement;
+    room.insertBefore(cv, room.firstChild);
     const ctx = cv.getContext("2d");
     let sc = 1, ox = 0, oy = 0, dpr = 1, box;
     function fit() {
       box = cv.getBoundingClientRect();
+      const art = wrap.getBoundingClientRect();
       dpr = Math.min(devicePixelRatio || 1, 2);
-      cv.width = Math.round(box.width * dpr); cv.height = Math.round(box.height * dpr);
-      sc = Math.min(box.width / VB.w, box.height / VB.h);            // same fit as the svg: xMidYMax meet
-      ox = (box.width - VB.w * sc) / 2 - VB.x * sc;
-      oy = box.height - VB.h * sc - VB.y * sc;
+      const w = Math.round(box.width * dpr), h = Math.round(box.height * dpr);
+      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+      sc = Math.min(art.width / VB.w, art.height / VB.h);            // same fit as the svg: xMidYMax meet
+      ox = art.left - box.left + (art.width - VB.w * sc) / 2 - VB.x * sc;
+      oy = art.top - box.top + art.height - VB.h * sc - VB.y * sc;
     }
     fit();
     addEventListener("resize", fit);
+    if (window.ResizeObserver) { const ro = new ResizeObserver(fit); ro.observe(wrap); ro.observe(room); }
 
     // the hand: where it is, how fast it moves, how wet it is, where it last left a ring
     const hand = { on: false, x: 0, y: 0, vx: 0, vy: 0, t: 0, show: 0, wet: 0, rx: 0, ry: 0 };

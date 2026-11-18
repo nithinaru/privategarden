@@ -104,38 +104,13 @@
       for (const cls of ["f", "o"]) {
         const t = document.createElementNS(SVGNS, "text");
         t.setAttribute("class", cls); t.setAttribute("x", r.left); t.setAttribute("y", y);
-        t.style.cssText = `--n:${(i * 0.1).toFixed(1)}s;${font}`;
+        t.style.cssText = `--n:${(i * 0.085).toFixed(3)}s;${font}`;
         t.textContent = ch;
         svg.appendChild(t);
       }
     });
-    // construction marks, drawn and lifted with each letter's hairline. they run past
-    // the letter they belong to: a diagonal through its box, its far edge, a circle
-    // round the bowl of a round letter, and one long diagonal under each line of the title
-    const mark = (d, n) => {
-      const p = document.createElementNS(SVGNS, "path");
-      p.setAttribute("class", "c"); p.setAttribute("d", d); p.setAttribute("pathLength", 1);
-      p.style.setProperty("--n", n + "s");
-      svg.insertBefore(p, svg.firstChild);
-    };
-    const TALL = { P: 0.66, G: 0.66, d: 0.74, t: 0.6, i: 0.68 }, ROUND = "aedG", e = fs * 0.1;
-    const rows = {};
-    chs.forEach((c, i) => {
-      const r = glyph(c), y = baseOf(r), ch = c.querySelector(".b").textContent, n = (i * 0.1).toFixed(1);
-      const top = y - fs * (TALL[ch] || 0.46), x0 = r.left, x1 = r.right, k = (y - top) / (x1 - x0);
-      mark(`M${x0 - e} ${y + e * k}L${x1 + e} ${top - e * k}`, n);                    // the box's diagonal
-      mark(`M${x1} ${top - e}V${y + e}`, n);                                          // its far edge
-      if (ch === "v") mark(`M${x0 - e} ${top - e * k}L${x1 + e} ${y + e * k}`, n);
-      if (ROUND.includes(ch)) {
-        const h = ch === "G" ? fs * 0.66 : fs * 0.46, rad = Math.max(x1 - x0, h) * 0.54, cx = (x0 + x1) / 2, cy = y - h / 2;
-        mark(`M${cx - rad} ${cy}a${rad} ${rad} 0 1 0 ${rad * 2} 0a${rad} ${rad} 0 1 0 ${-rad * 2} 0`, n);
-      }
-      const row = (rows[Math.round(y)] = rows[Math.round(y)] || { y, x0, x1, n });
-      row.x1 = x1;
-    });
-    Object.values(rows).forEach((w) => mark(`M${w.x0 - fs * 0.25} ${w.y - fs * 0.98}L${w.x1 + fs * 0.25} ${w.y + fs * 0.3}`, w.n));
     document.body.appendChild(svg);
-    await wait((chs.length - 1) * 100 + 1900);      // the last hairline has lifted
+    await wait((chs.length - 1) * 85 + 1615);      // the last hairline has lifted
     nameEl.classList.add("instant", "set");         // the real letters take over, unseen
     svg.remove();
   }
@@ -253,7 +228,11 @@
       reel.addEventListener("error", () => end("missing"), { once: true });
       reel.addEventListener("playing", () => end("ok"), { once: true });
       reel.setAttribute("webkit-playsinline", "");
-      reel.src = innerWidth < 800 && S.videoSmall ? S.videoSmall : S.video;
+      // the first copy this browser can play: av1, then hevc, then h264
+      const can = (c) => reel.canPlayType('video/mp4; codecs="' + c + '"') !== "";
+      const set = innerWidth < 800 && S.videoSmall ? S.videoSmall : S.video;
+      reel.src = typeof set === "string" ? set
+        : (set.av1 && can("av01.0.08M.08") && set.av1) || (set.hevc && can("hvc1.1.6.L120.90") && set.hevc) || set.h264;
       const gone = (e) => reel.error || (e && e.name === "NotSupportedError");
       // with sound if the browser allows it, silent if not
       setSound(true);
@@ -353,14 +332,14 @@
     counter.classList.add("on");
 
     // the construction comes up quickly behind the card: every line starts within
-    // the first second, 45ms apart, so they overlap as they draw
+    // the first second, 41ms apart, so they overlap as they draw
     const shapes = construction();
-    shapes.forEach((el, j) => setTimeout(() => (el.style.strokeDashoffset = 0), j * 45));
+    shapes.forEach((el, j) => setTimeout(() => (el.style.strokeDashoffset = 0), j * 41));
     $("cap").classList.add("on");
     const n = Math.max(frames.length, 8);        // a short set loops
     const pad = (v) => String(v).padStart(2, "0");
     // starts slow, runs fast through the middle, slows again for the end
-    const beat = (i) => 110 + 470 * Math.pow((Math.cos((2 * Math.PI * i) / (n - 1)) + 1) / 2, 1.4);
+    const beat = (i) => 101 + 432 * Math.pow((Math.cos((2 * Math.PI * i) / (n - 1)) + 1) / 2, 1.4);
     for (let i = 0; i < n && !done; i++) {
       const k = i % frames.length;
       box.replaceChildren(frames[k]);
@@ -368,7 +347,7 @@
       await wait(beat(i));
     }
     if (done) return;
-    await wait(1300);                             // rest on the last photo
+    await wait(1200);                             // rest on the last photo
 
     // hand off: lines pull back in order, the photo and its text ease away
     shapes.forEach((el, j) => setTimeout(() => { el.style.transitionDuration = ".8s"; el.style.strokeDashoffset = 1; }, j * 35));
