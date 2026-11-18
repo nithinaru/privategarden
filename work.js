@@ -2,7 +2,8 @@
 //   0.00-0.26  cards pop in one by one between two phrases, fanned on a
 //              diagonal, pushing the phrases apart
 //   0.22-0.36  the phrases fade
-//   0.30-0.52  the stack bursts into a scattered field, cards at full size
+//   0.30-0.52  the stack bursts into a scattered field, cards at full size, each one
+//              swinging out on a curve
 //   0.45-1.00  the field drifts up and away. the cards are at different depths: the
 //              bigger a card, the nearer it is, so it moves faster and passes over
 //              the smaller ones behind it
@@ -19,6 +20,8 @@
   const items = (S.items || []).filter((it) => it.src);
   if (!items.length) { sec.remove(); return; }
   const N = items.length, MID = (N - 1) / 2;
+  // a long list is fanned tighter, so the stack stays about as wide as twenty cards would make it
+  const FAN = Math.min(N, 20), TIGHT = FAN / N, CURL = 0.2;
 
   // seeded random, so the layout is the same on every visit
   let seed = 7;
@@ -32,7 +35,8 @@
     if (it.title) { const cap = document.createElement("span"); cap.className = "work-cap"; cap.textContent = it.title; a.appendChild(cap); }
     space.appendChild(a);
     const ratio = it.ratio || 16 / 9;
-    return { el: a, ratio, size: 0.55 + rnd() * 0.45, fx: rnd(), fy: rnd(), jit: rnd(), d: Math.abs(i - MID) };
+    a.style.aspectRatio = ratio;
+    return { el: a, ratio, size: 0.55 + rnd() * 0.45, fx: rnd(), fy: rnd(), jit: rnd(), bend: 0.28 + rnd() * 0.2, d: Math.abs(i - MID) };
   });
   // the photos are fetched once the intro film has its head start (main.js says when)
   const fetchPhotos = () => cards.forEach((c) => { const im = c.el.querySelector("img"); if (im && !im.src) im.src = im.dataset.src; });
@@ -58,11 +62,15 @@
     const y0 = tall ? -H * 0.3 : -((rows - 1) / 2) * cellH + H * 0.04;   // a touch low, to sit nearer the footer
     amp = H * 0.15;
     cards.forEach((c, i) => {
-      c.w = unit * c.size; c.h = c.w / c.ratio;
+      // every shape covers the same area as a 16:9 card of its size would
+      c.w = unit * c.size * Math.sqrt(c.ratio / (16 / 9)); c.h = c.w / c.ratio;
       c.el.style.width = c.w + "px"; c.el.style.height = c.h + "px";
       // stack: a diagonal fan through the centre
-      c.sx = (i - MID) * (stackW * 0.075); c.sy = (i - MID) * (stackW * 0.085);
-      c.ss = stackW / c.w;
+      // and bent into a shallow S: the top of the pile leans away to the left, the bottom to the right
+      const t = MID ? (i - MID) / MID : 0;
+      c.sx = (i - MID) * (stackW * 0.075) * TIGHT + stackW * CURL * t * t * t;
+      c.sy = (i - MID) * (stackW * 0.085) * TIGHT * (1 - 0.11 * t * t);
+      c.ss = stackW / (unit * c.size);
       // field: a loose grid, jittered, starting above centre and running below the screen
       const col = i % cols, row = Math.floor(i / cols);
       c.tx = (col - (cols - 1) / 2) * cellW + (c.fx - 0.5) * cellW * 0.3;
@@ -95,12 +103,12 @@
   function render(s) {
     const p = clamp(s / intro) * 0.52;            // the stack, fade and burst play over the first stretch
     const grown = out(span(p, 0, 0.26));
-    const gap = 14 + grown * (stackW * 0.5 + N * stackW * 0.04 + 22);
+    const gap = 14 + grown * (stackW * (0.5 + CURL) + FAN * stackW * 0.04 + 22);
     const wordA = 1 - span(p, 0.22, 0.36);
     const k = Math.min(1, W / 1100);
     if (W < 700) {
       // a phone has no room either side: one phrase above the stack, one below
-      const lift = 30 + grown * (stackW * 0.3 + N * stackW * 0.045 + 26);
+      const lift = 30 + grown * (stackW * 0.3 + FAN * stackW * 0.045 + 26);
       wordL.style.transform = `translate(-50%, calc(-50% - ${lift}px))`;
       wordR.style.transform = `translate(-50%, calc(-50% + ${lift}px))`;
     } else {
@@ -118,7 +126,11 @@
       // each card rises through its place in the grid: it starts below it and ends as
       // far above it. the near ones cover a third of the screen, the far ones very little,
       // so near ones pass over far ones and nothing leaves the screen
-      const x = c.sx + nudge * (1 - fly) + (c.tx - c.sx) * fly, y = c.sy + (c.ty + c.sp * amp * (1 - 2 * q) - c.sy) * fly - up * fly;
+      // it leaves the stack on a curve: it sets off to one side of where it is going and
+      // swings round onto it, every card turning the same way, so the stack unwinds
+      const dx = c.tx - c.sx, dy = c.ty + c.sp * amp * (1 - 2 * q) - c.sy - up;
+      const turn = c.bend * (1 - fly), cs = Math.cos(turn), sn = Math.sin(turn);
+      const x = c.sx + nudge * (1 - fly) + (dx * cs - dy * sn) * fly, y = c.sy + (dx * sn + dy * cs) * fly;
       const s = (c.ss * (0.55 + 0.45 * pop)) * (1 - fly) + fly;
       c.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${s.toFixed(4)})`;
       c.el.style.opacity = pop;

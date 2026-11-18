@@ -47,24 +47,46 @@ window.SITE = {
   work: {
     // the two phrases either side of the stack
     words: ["What I", "keep returning to"],
-    // one entry per card. these are the same photos as the flicker, cut in colour.
-    // each can have: src (image), title (caption under it; "" for none), href (link), ratio (default 16 / 9).
+    // one entry per card. 01-15 are the same photos as the flicker, cut in colour; the
+    // rest are shown only here, each at its own shape.
+    // each can have: src (image), title (caption under it; "" for none), href (link),
+    // ratio (width / height of the picture; default 16 / 9).
     items: [
       { src: "assets/work/01.webp?v=2", title: "" },
+      { src: "assets/work/16.webp?v=1", title: "", ratio: 538 / 717 },
+      { src: "assets/work/17.webp?v=1", title: "", ratio: 556 / 693 },
       { src: "assets/work/02.webp?v=2", title: "" },
+      { src: "assets/work/18.webp?v=1", title: "", ratio: 547 / 706 },
+      { src: "assets/work/19.webp?v=1", title: "", ratio: 565 / 683 },
       { src: "assets/work/03.webp?v=2", title: "" },
+      { src: "assets/work/20.webp?v=1", title: "", ratio: 533 / 723 },
+      { src: "assets/work/21.webp?v=1", title: "", ratio: 569 / 678 },
       { src: "assets/work/04.webp?v=2", title: "" },
+      { src: "assets/work/22.webp?v=1", title: "", ratio: 621 / 621 },
+      { src: "assets/work/23.webp?v=1", title: "", ratio: 600 / 397 },
       { src: "assets/work/05.webp?v=2", title: "" },
+      { src: "assets/work/24.webp?v=1", title: "", ratio: 621 / 621 },
+      { src: "assets/work/25.webp?v=1", title: "", ratio: 612 / 608 },
       { src: "assets/work/06.webp?v=2", title: "" },
+      { src: "assets/work/26.webp?v=1", title: "", ratio: 420 / 630 },
       { src: "assets/work/07.webp?v=2", title: "" },
+      { src: "assets/work/27.webp?v=1", title: "", ratio: 717 / 538 },
       { src: "assets/work/08.webp?v=2", title: "" },
+      { src: "assets/work/28.webp?v=1", title: "", ratio: 555 / 694 },
       { src: "assets/work/09.webp?v=2", title: "" },
+      { src: "assets/work/29.webp?v=1", title: "", ratio: 573 / 673 },
       { src: "assets/work/10.webp?v=2", title: "" },
+      { src: "assets/work/30.webp?v=1", title: "", ratio: 466 / 828 },
       { src: "assets/work/11.webp?v=2", title: "" },
+      { src: "assets/work/31.webp?v=1", title: "", ratio: 555 / 694 },
       { src: "assets/work/12.webp?v=2", title: "" },
+      { src: "assets/work/32.webp?v=1", title: "", ratio: 482 / 801 },
       { src: "assets/work/13.webp?v=2", title: "" },
+      { src: "assets/work/33.webp?v=1", title: "", ratio: 538 / 717 },
       { src: "assets/work/14.webp?v=2", title: "" },
+      { src: "assets/work/34.webp?v=1", title: "", ratio: 621 / 621 },
       { src: "assets/work/15.webp?v=2", title: "" },
+      { src: "assets/work/35.webp?v=1", title: "", ratio: 555 / 694 },
     ],
   },
 };

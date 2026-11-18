@@ -296,7 +296,7 @@ body.live .under { position: relative; z-index: 31; }
 .work.still .work-stage { position: static; height: auto; overflow: visible; }
 .work.still .work-word { position: static; display: inline; font-size: clamp(28px, 4vw, 56px); }
 .work.still .work-space { position: static; width: auto; height: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 3rem 1.5rem; margin-top: 3rem; }
-.work.still .work-card { position: relative; translate: none; opacity: 1; width: auto; aspect-ratio: 16 / 9; }
+.work.still .work-card { position: relative; translate: none; opacity: 1; width: auto; }
 .work.still .work-cap { opacity: 1; }
 
 /* ---------- footer ---------- */
